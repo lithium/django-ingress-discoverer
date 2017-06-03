@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
 
+    'django_extensions',
+
     'allauth',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
@@ -92,6 +94,8 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+AUTH_USER = 'discoverer.DiscovererUser'
 
 AUTH_PASSWORD_VALIDATORS = [
     {

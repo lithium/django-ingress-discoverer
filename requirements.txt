@@ -3,6 +3,7 @@ Django==1.11.1
 gunicorn==19.6.0
 psycopg2==2.6.2
 whitenoise==3.2
+django-extensions==1.7.9
 
 #django-allauth==0.32.0
 git+https://github.com/coffindragger/django-allauth.git@0.33.0-coffindragger
