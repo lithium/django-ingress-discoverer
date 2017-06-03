@@ -47,3 +47,8 @@ class PortalInfo(AuditedModel):
 
     def __unicode__(self):
         return self.name
+
+    @property
+    def latlng(self):
+        return u"{}, {}".format(self.lat, self.lng)
+

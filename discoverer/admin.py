@@ -20,12 +20,14 @@ class AuditedModelAdmin(admin.ModelAdmin):
 
 
 class PortalIndexAdmin(AuditedModelAdmin):
-    pass
+    list_display = ('__unicode__', 'description', 'is_active')
+    list_filter = ('is_active',)
 admin.site.register(PortalIndex, PortalIndexAdmin)
 
 
 class PortalInfoAdmin(AuditedModelAdmin):
-    pass
+    list_display = ('name', 'latlng', 'created_at', 'created_by')
+    list_filter = ('created_at', 'created_by')
 admin.site.register(PortalInfo, PortalInfoAdmin)
 
 
