@@ -5,3 +5,5 @@ staticfiles
 mediafiles
 .env
 *.sqlite3
+.idea/
+*.iml

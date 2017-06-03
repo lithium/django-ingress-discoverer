@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'allauth',
-    'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 
@@ -114,9 +113,9 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-ACCOUNT_EMAIL_REQUIRED=True
-ACCOUNT_EMAIL_VERIFICATION="mandatory"
-ACCOUNT_ADAPTER="discoverer.account_adapter.DiscovererAccountAdapter"
+ACCOUNT_OPEN_FOR_SIGNUP=False
+SOCIALACCOUNT_OPEN_FOR_SIGNUP=True
+LOGIN_REDIRECT_URL='/'
 
 
 # Internationalization
