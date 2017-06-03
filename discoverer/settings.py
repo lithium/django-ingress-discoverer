@@ -40,8 +40,8 @@ INSTALLED_APPS = [
     # http://whitenoise.evans.io/en/stable/django.html#using-whitenoise-in-development
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-
     'django_extensions',
+    'storages',
 
     'allauth',
     'allauth.socialaccount',
@@ -95,7 +95,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER = 'discoverer.DiscovererUser'
+AUTH_USER_MODEL = 'discoverer.DiscovererUser'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -155,3 +155,8 @@ STATICFILES_DIRS = [
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+DEFAULT_FILE_STORAGE = 'storages.backends.dropbox.DropBoxStorage'
+DROPBOX_OAUTH2_TOKEN = os.environ.get('DROPBOX_OAUTH2_TOKEN', '')
+
