@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+
+    'discoverer',
 ]
 
 SITE_ID = 1
@@ -111,6 +113,11 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+ACCOUNT_EMAIL_REQUIRED=True
+ACCOUNT_EMAIL_VERIFICATION="mandatory"
+ACCOUNT_ADAPTER="discoverer.account_adapter.DiscovererAccountAdapter"
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
