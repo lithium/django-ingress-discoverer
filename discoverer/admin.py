@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 
-from models import PortalInfo, PortalIndex, DiscovererUser
+from discoverer.models import PortalInfo, PortalIndex, DiscovererUser
 
 
 class PermissionAdmin(admin.ModelAdmin):
