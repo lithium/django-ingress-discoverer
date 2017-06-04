@@ -25,6 +25,6 @@ class ServeIndex(PermissionRequiredMixin, View):
             raise Http404
         response = StreamingHttpResponse(idx.indexfile.file, content_type='application/json')
         # response['Content-Length'] = idx.indexfile.
-        response['Content-Disposition'] = "attachment; filename={}".format(idx.name)
+        # response['Content-Disposition'] = "attachment; filename={}".format(idx.name)
         return response
 
