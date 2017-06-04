@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.core.exceptions import MultipleObjectsReturned
+from django.db import models, transaction
 
 
 class AuditedModel(models.Model):
@@ -13,6 +14,25 @@ class AuditedModel(models.Model):
         abstract = True
 
 
+class ActiveModelManager(models.Manager):
+    def get_active(self):
+        try:
+            return self.get(is_active=True)
+        except MultipleObjectsReturned:
+            return self.filter(is_active=True).first()
+        except self.model.DoesNotExist:
+            return None
+
+    @transaction.atomic
+    def set_active(self, new_active_object):
+        existing_active = self.get_active()
+        if existing_active:
+            existing_active.is_active = False
+            existing_active.save()
+        new_active_object.is_active = True
+        new_active_object.save()
+
+
 class DiscovererUser(AuditedModel, AbstractUser):
     pass
 
@@ -22,6 +42,8 @@ class PortalIndex(AuditedModel):
     name = models.CharField(max_length=254, unique=True)
     description = models.CharField(max_length=254, blank=True, null=True)
     indexfile = models.FileField(upload_to='uploads/indexes')
+
+    objects = ActiveModelManager()
 
     class Meta:
         ordering = ('name',)
