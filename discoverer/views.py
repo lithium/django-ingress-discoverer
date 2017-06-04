@@ -23,8 +23,8 @@ class ServeIndex(PermissionRequiredMixin, View):
         idx = PortalIndex.objects.get_active()
         if idx is None:
             raise Http404
-        # response = StreamingHttpResponse(idx.indexfile.file, content_type='application/json')
-        response = HttpResponse(idx.indexfile.file, content_type='application/json')
+        response = StreamingHttpResponse(idx.indexfile.file, content_type='application/json')
+        # response = HttpResponse(idx.indexfile.file, content_type='application/json')
         response['Content-Length'] = idx.indexfile.size
         # response['Content-Disposition'] = "attachment; filename={}".format(idx.name)
         return response
