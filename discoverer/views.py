@@ -1,11 +1,11 @@
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import StreamingHttpResponse, Http404
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
 
-from models import PortalIndex
+from discoverer.models import PortalIndex
 
 
 @method_decorator(login_required, name='dispatch')
