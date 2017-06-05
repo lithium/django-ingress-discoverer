@@ -14,15 +14,17 @@ class Home(TemplateView):
 
 
 @method_decorator(login_required, name='dispatch')
-class ServeIndex(PermissionRequiredMixin, RedirectView):
+class ServeIndex(PermissionRequiredMixin, View):
     permanent = False
     permission_required = ('discoverer.read_portalindex',)
     raise_exception = True
     http_method_names = ('get',)
 
-    def get_redirect_url(self, *args, **kwargs):
+    def get(self, *args, **kwargs):
         idx = PortalIndex.objects.get_active()
         if idx is None:
             raise Http404
-        return idx.indexfile.url
+        response = StreamingHttpResponse(idx.indexfile)
+        response['Content-Length'] = idx.indexfile.size
+        return response
 
