@@ -36,7 +36,9 @@ class ServeIndex(PermissionRequiredMixin, View):
 
 class PortalInfoSerializer(serializers.Serializer):
     name = serializers.CharField()
-    latlng = serializers.ListField(child=serializers.DecimalField(max_digits=9, decimal_places=6), min_length=2, max_length=2)
+    latlng = serializers.ListField(child=serializers.DecimalField(max_digits=9, decimal_places=6), min_length=2, max_length=2, source='llarray')
+    created_by = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
 
     def create(self, validated_data):
         latlng = validated_data.get('latlng')
@@ -53,6 +55,7 @@ class PortalInfoSerializer(serializers.Serializer):
 
 class HasCreatePortalInfoPermission(permissions.DjangoModelPermissions):
     perms_map = {
+        'GET': ['discoverer.read_own_portalinfo'],
         'POST': ['discoverer.add_portalinfo'],
     }
 
@@ -63,10 +66,11 @@ class SubmitPortalInfos(APIView):
         permissions.IsAuthenticated,
         HasCreatePortalInfoPermission
     )
-    http_method_names = ('get', 'post')
 
     def get(self, request, *args, **kwargs):
-        return Response("ok")
+        portals = PortalInfo.objects.filter(created_by=request.user).order_by('-created_at')
+        serializer = PortalInfoSerializer(portals, many=True)
+        return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         serializer = PortalInfoSerializer(data=request.data, many=True)
@@ -75,4 +79,3 @@ class SubmitPortalInfos(APIView):
             created_by=request.user,
         )
         return Response("ok")
-submit_portalinfos = csrf_exempt(SubmitPortalInfos.as_view())

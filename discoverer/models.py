@@ -65,7 +65,8 @@ class PortalInfo(AuditedModel):
         ordering = ('name',)
         unique_together = ('lat','lng')
         permissions = (
-            ("read_portalinfo", "Allowed to see the list of discovered portals"),
+            ("read_own_portalinfo", "Allowed to see the list of portals you've discoveredj"),
+            ("read_portalinfo", "Allowed to see the list of all discovered portals"),
         )
 
     def __unicode__(self):
@@ -74,4 +75,8 @@ class PortalInfo(AuditedModel):
     @property
     def latlng(self):
         return u"{}, {}".format(self.lat, self.lng)
+
+    @property
+    def llarray(self):
+        return [self.lat, self.lng]
 
