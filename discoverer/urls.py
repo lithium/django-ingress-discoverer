@@ -15,12 +15,14 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from discoverer.views import Home, ServeIndex
+
+from discoverer.views import Home, ServeIndex, submit_portalinfos
 
 urlpatterns = [
     url(r'^$', Home.as_view(), name='home'),
 
     url(r'^pidx$', ServeIndex.as_view(), name='serve_index'),
+    url(r'^spi$', submit_portalinfos, name='submit_portalinfos'),
 
     url(r'^admin/', admin.site.urls),
 

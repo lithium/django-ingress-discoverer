@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'storages',
     'corsheaders',
+    'rest_framework',
 
     'allauth',
     'allauth.socialaccount',
@@ -69,6 +70,9 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
     'www.ingress.com',
 )
+CSRF_TRUSTED_ORIGINS = [
+    'www.ingress.com',
+]
 
 
 ROOT_URLCONF = 'discoverer.urls'
@@ -146,7 +150,7 @@ SOCIALACCOUNT_PROVIDERS = {
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Los_Angeles'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -180,3 +184,13 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_FILE_STORAGE = 'storages.backends.dropbox.DropBoxStorage'
 DROPBOX_OAUTH2_TOKEN = os.environ.get('DROPBOX_OAUTH2_TOKEN', '')
 
+
+REST_FRAMEWORK = dict(
+    DEFAULT_PERMISSION_CLASSES=[],
+    DEFAULT_RENDERER_CLASSES=[
+        'rest_framework.renderers.JSONRenderer'
+    ],
+    DEFAULT_AUTHENTICATION_CLASSES=[
+        'discoverer.authentication.CsrfExemptSessionAuthentication',
+    ]
+)

@@ -63,6 +63,7 @@ class PortalInfo(AuditedModel):
 
     class Meta:
         ordering = ('name',)
+        unique_together = ('lat','lng')
         permissions = (
             ("read_portalinfo", "Allowed to see the list of discovered portals"),
         )
