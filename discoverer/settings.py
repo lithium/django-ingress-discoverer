@@ -129,6 +129,18 @@ ACCOUNT_OPEN_FOR_SIGNUP=False
 SOCIALACCOUNT_OPEN_FOR_SIGNUP=True
 LOGIN_REDIRECT_URL='/'
 
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email'
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online'
+        }
+    }
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
