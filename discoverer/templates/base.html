@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block head_title %}{% endblock %}</title>
+    <style>
+        table.table {
+            width: 100%;
+        }
+        .table th {
+            text-align: left;
+        }
+    </style>
+    {% block extra_head %}
+    {% endblock %}
+</head>
+<body>
+{% block body %}
+
+    {% block content %}
+    {% endblock %}
+<div>
+    <ul>
+        {% if user.is_authenticated %}
+        <li><a href="{% url 'account_logout' %}">Sign Out ({{ user }})</a></li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_body %}
+{% endblock %}
+</body>
+</html>

@@ -91,6 +91,9 @@ window.plugin.portalDiscoverer.setup  = function() {
 
   addHook('portalAdded', window.plugin.portalDiscoverer.handlePortalAdded);
 
+  $('head').append('<style>'+
+  'iframe { width: 675px; background: white; border: none; }'+
+  '</style>')
 
   $('#toolbox').append('<a onclick="window.plugin.portalDiscoverer.displayLoginDialog()">Discoverer</a>');
 };

@@ -46,11 +46,12 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
 
+    'discoverer',
+
     'allauth',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 
-    'discoverer',
 ]
 
 SITE_ID = 1
@@ -131,6 +132,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ACCOUNT_OPEN_FOR_SIGNUP=False
+ACCOUNT_LOGOUT_ON_GET=True
 SOCIALACCOUNT_OPEN_FOR_SIGNUP=True
 LOGIN_REDIRECT_URL='/'
 
