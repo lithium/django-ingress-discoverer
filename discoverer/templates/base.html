@@ -23,6 +23,10 @@
         {% if user.is_authenticated %}
         <li><a href="{% url 'account_logout' %}">Sign Out ({{ user }})</a></li>
         {% endif %}
+        {% if user.is_staff %}
+        <li><a href="{% url 'admin:index' %}">Staff</a></li>
+        {% endif %}
+
     </ul>
 </div>
 {% endblock %}
