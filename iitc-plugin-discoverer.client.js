@@ -96,6 +96,20 @@ window.plugin.portalDiscoverer.setup  = function() {
   '</style>')
 
   $('#toolbox').append('<a onclick="window.plugin.portalDiscoverer.displayLoginDialog()">Discoverer</a>');
+
+  window.addPortalHighlighter('Discovered Portals', window.plugin.portalDiscoverer.highlight)
+};
+
+window.plugin.portalDiscoverer.highlight = function(data) {
+  var ll = data.portal._latlng.lat+","+data.portal._latlng.lng
+
+  if (!(ll in window.plugin.portalDiscoverer.portalIndex)) {
+    data.portal.setStyle({
+      fillColor: "red",
+      fillOpacity: 1.0
+    })
+  }
+
 };
 
 window.plugin.portalDiscoverer.fetchIndex = function() {
