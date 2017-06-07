@@ -35,7 +35,7 @@ var _xhr = function(method, url, cb, data, async) {
   req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
   req.onreadystatechange = function() {
     if (req.readyState != 4) return;
-    if(req.status == 200) {
+    if(req.status == 200 && req.responseText.substr(0,1) == '{') {
       cb(JSON.parse(req.responseText));
     }
   };
@@ -137,7 +137,9 @@ window.plugin.portalDiscoverer.displayLoginDialog = function() {
         }
         window.plugin.portalDiscoverer.base_url = url;
         localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
-        window.plugin.portalDiscoverer.fetchIndex();
+
+        html.empty()
+        html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'"></iframe>');
     })
     html = $('<div/>')
     html.append(server_input)
