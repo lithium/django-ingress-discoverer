@@ -7,3 +7,4 @@ mediafiles
 *.sqlite3
 .idea/
 *.iml
+settings_local.py

@@ -20,7 +20,8 @@ class Home(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
-        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex')
+        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex') and \
+                                   self.request.user.has_perm('discoverer.read_iitcplugin')
         context['site'] = Site.objects.get_current(request=self.request)
         if self.request.user.has_perm('discoverer.read_own_portalinfo'):
             context.update(dict(

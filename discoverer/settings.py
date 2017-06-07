@@ -198,3 +198,11 @@ REST_FRAMEWORK = dict(
         'discoverer.authentication.CsrfExemptSessionAuthentication',
     ]
 )
+
+SECURE_SSL_REDIRECT=True
+
+
+try:
+    from settings_local import *
+except ImportError:
+    pass
