@@ -28,7 +28,27 @@ admin.site.register(PortalIndex, PortalIndexAdmin)
 class PortalInfoAdmin(AuditedModelAdmin):
     list_display = ('name', 'latlng', 'created_at', 'created_by')
     list_filter = ('created_at', 'created_by')
+    readonly_fields = ('created_at', 'created_by', 'updated_at', 'updated_by')
 admin.site.register(PortalInfo, PortalInfoAdmin)
 
 
-admin.site.register(DiscovererUser, UserAdmin)
+class DiscovererUserAdmin(UserAdmin):
+    readonly_fields = ('email', 'last_login', 'date_joined')
+    staff_fieldsets = (
+        (None, {'fields': ('username', 'email')}),
+        (('Important dates'), {'fields': ('last_login', 'date_joined')}),
+        (('Groups'), {'fields': ('groups',)}),
+    )
+
+    def change_view(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            try:
+                self.fieldsets = self.staff_fieldsets
+                response = super(DiscovererUserAdmin, self).change_view(request, *args, **kwargs)
+            finally:
+                self.fieldsets = UserAdmin.fieldsets
+            return response
+        else:
+            return super(DiscovererUserAdmin, self).change_view(request, *args, **kwargs)
+
+admin.site.register(DiscovererUser, DiscovererUserAdmin)
