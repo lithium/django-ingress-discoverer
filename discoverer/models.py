@@ -1,4 +1,3 @@
-import StringIO
 from lxml import etree
 
 from django.conf import settings
