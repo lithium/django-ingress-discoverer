@@ -56,6 +56,7 @@ class PortalIndex(AuditedModel):
         ordering = ('name',)
         permissions = (
             ("read_portalindex", "Allowed to fetch the portal index"),
+            ("read_iitcplugin", "Allowed download IITC plugin"),
         )
 
     def __unicode__(self):

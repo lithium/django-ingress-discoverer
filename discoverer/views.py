@@ -1,11 +1,12 @@
+import os
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.http import Http404, StreamingHttpResponse
+from django.contrib.sites.models import Site
+from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import TemplateView, RedirectView
-import rest_framework
+from django.views.generic import TemplateView
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,6 +21,7 @@ class Home(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex')
+        context['site'] = Site.objects.get_current(request=self.request)
         if self.request.user.has_perm('discoverer.read_own_portalinfo'):
             context.update(dict(
                 portals=PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
@@ -54,6 +56,18 @@ class DownloadKml(PermissionRequiredMixin, View):
         response = StreamingHttpResponse(kml_output.kmlfile)
         response['Content-Length'] = kml_output.kmlfile.size
         response['Content-Disposition'] = 'attachment; filename="{}.kml"'.format(kml_output.name)
+        return response
+
+
+@method_decorator(login_required, name='dispatch')
+class DownloadPlugin(PermissionRequiredMixin, View):
+    permission_required = ('discoverer.read_iitcplugin',)
+    raise_exception = True
+
+    def get(self, *args, **kwargs):
+        with open(os.path.join(settings.BASE_DIR, 'iitc-plugin-discoverer.user.js'), 'r') as script_fh:
+            response = HttpResponse(script_fh.read())
+        response['Content-Type'] = "application/json"
         return response
 
 

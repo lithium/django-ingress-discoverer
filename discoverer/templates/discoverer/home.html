@@ -20,7 +20,16 @@
     </tr>
     {% endfor %}
 </table>
+
 {% else %}
 <p>Unauthorized</p>
 {% endif %}
+{% endblock %}
+
+
+{% block extra_body %}
+<div>
+    Install the IITC plugin: <a href="{% url "download_iitc_plugin" %}">iitc-plugin-portal-discoverer.user.js</a><br>
+    Once installed, click on the Discoverer link in the Info window, and use this server url: <p class="codeaddress">{{site}}</p>
+</div>
 {% endblock %}

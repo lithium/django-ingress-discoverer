@@ -16,11 +16,12 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from discoverer.views import Home, ServeIndex, SubmitPortalInfos, DownloadKml
+from discoverer.views import Home, ServeIndex, SubmitPortalInfos, DownloadKml, DownloadPlugin
 
 urlpatterns = [
     url(r'^$', Home.as_view(), name='home'),
     url(r'^fetchKml$', DownloadKml.as_view(), name='download_kml'),
+    url(r'^iitc-plugin-portal-discoverer.user.js$', DownloadPlugin.as_view(), name='download_iitc_plugin'),
 
     url(r'^pidx$', ServeIndex.as_view(), name='serve_index'),
     url(r'^spi$', SubmitPortalInfos.as_view(), name='submit_portalinfos'),

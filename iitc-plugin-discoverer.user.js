@@ -1,8 +1,8 @@
 // ==UserScript==
-// @id             iitc-plugin-portal-discoverer@noobdy889
+// @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        0.0.2
+// @version        1.1.0
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
