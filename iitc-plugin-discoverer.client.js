@@ -216,7 +216,7 @@ window.plugin.portalDiscoverer.addIndex = function(data, index) {
     var key = _llstring(ll);
     index[key] = true;
   }
-}
+};
 
 window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
     window.plugin.portalDiscoverer.addIndex(data);
@@ -231,7 +231,7 @@ window.plugin.portalDiscoverer.fetchSpi = function() {
       window.plugin.portalDiscoverer.addIndex(data, window.plugin.portalDiscoverer.foundPortalIndex);
       window.plugin.portalDiscoverer.processPortalQueue();
   });
-}
+};
 
 
 window.plugin.portalDiscoverer.processPortalQueue = function() {
