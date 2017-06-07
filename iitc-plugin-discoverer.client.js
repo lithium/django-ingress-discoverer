@@ -34,7 +34,6 @@ var _xhr = function(method, url, cb, data, async) {
   req.open(method, url, async);
   req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
   req.onreadystatechange = function() {
-    // console.log("discoverer xhr readystatechange", req);
     if (req.readyState != 4) return;
     if(req.status == 200) {
       cb(JSON.parse(req.responseText));
@@ -61,7 +60,6 @@ window.plugin.portalDiscoverer.foundPortalIndex = {};
 window.plugin.portalDiscoverer.newPortals = {};
 
 window.plugin.portalDiscoverer.base_url = undefined;
-//"https://28fcf9fc.ngrok.io/";
 window.plugin.portalDiscoverer.how_many_new_portals = 1;
 
 
@@ -74,19 +72,14 @@ window.plugin.portalDiscoverer.setup  = function() {
 
   var portal_cache = localStorage.getItem("known_portal_index");
   var base_url = localStorage.getItem("base_url")
-  console.log("discoverer bavse_url", base_url)
   if (base_url) {
     window.plugin.portalDiscoverer.base_url = base_url;
-  } else {
-    console.log("discoverer no base_url!")
   }
 
   if (portal_cache) {
     window.plugin.portalDiscoverer.portalIndex = JSON.parse(portal_cache);
-    console.log("discoverer found existing index", window.plugin.portalDiscoverer.portalIndex.length);
     window.plugin.portalDiscoverer.fetchSpi();
   } else {
-    console.log("discoverer has no index, fetching");
     window.plugin.portalDiscoverer.fetchIndex();
   }
 
@@ -131,7 +124,6 @@ window.plugin.portalDiscoverer.displayLoginDialog = function() {
   if (window.plugin.portalDiscoverer.base_url) {
     html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'"></iframe>');
     html.append($('<button>Clear Server</button>').click(function() {
-        console.log("discoverer clear click");
         window.plugin.portalDiscoverer.base_url = undefined;
         localStorage.removeItem("base_url")
     }))
@@ -139,7 +131,6 @@ window.plugin.portalDiscoverer.displayLoginDialog = function() {
     var server_input = $('<input id="discoverer_server_url" type="text"/>');
     var sbut = $('<button>Save</button>');
     sbut.click(function() {
-        console.log("discoverer sbut click", server_input, server_input.val());
         var url = server_input.val();
         if (!url.endsWith('/')) {
           url += '/'
@@ -173,7 +164,6 @@ window.plugin.portalDiscoverer.handlePortalAdded = function(data) {
   };
   var llstring = _llstring(latlng);
 
-  // console.log("discoverer portalAdded", data, idx, llstring);
   if (!name) {
     return; // skip unless we know the name
   }
@@ -181,7 +171,6 @@ window.plugin.portalDiscoverer.handlePortalAdded = function(data) {
   if (window.plugin.portalDiscoverer.portalIndex) {
     window.plugin.portalDiscoverer.checkInPortal(llstring, idx);
   } else {
-    console.log("discoverer queueing portal", llstring);
     window.plugin.portalDiscoverer.portalQueue.push([llstring,idx]);
   }
 
@@ -192,19 +181,15 @@ window.plugin.portalDiscoverer.checkInPortal = function(llstring, idx) {
   if (!window.plugin.portalDiscoverer.portalIndex) {
     return;
   }
-  console.log("discoverer checking in portal", llstring, idx, window.plugin.portalDiscoverer.portalIndex[llstring]);
 
   if (!_latlng_in_bounds(idx.latlng, window.plugin.portalDiscoverer.filter_bounds)) {
-      console.log("discoverer outside of bounds!", llstring, idx);
       return;
   }
 
   if (!(llstring in window.plugin.portalDiscoverer.portalIndex) && !(llstring in window.plugin.portalDiscoverer.foundPortalIndex)) {
     if (!(llstring in window.plugin.portalDiscoverer.newPortals)) {
-      console.log("discoverer adding to newPortals!");
       window.plugin.portalDiscoverer.newPortals[llstring] = idx;
     } else {
-      console.log("discoverer already found this new portal");
       window.plugin.portalDiscoverer.newPortals[llstring].name = idx.name;
     }
   }
@@ -219,17 +204,13 @@ window.plugin.portalDiscoverer.sendNewPortals = function() {
   if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) >= window.plugin.portalDiscoverer.how_many_new_portals) {
     var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
     window.plugin.portalDiscoverer.newPortals = {};
-    console.log("discoverer posting new portals ", portalsToSend);
     _xhr('POST', window.plugin.portalDiscoverer.base_url+"spi", window.plugin.portalDiscoverer.handleSubmit, JSON.stringify(portalsToSend));
-  } else {
-    console.log("discoverer skipping sendNewPortals, not enough new");
   }
 };
 
 
 window.plugin.portalDiscoverer.addIndex = function(data, index) {
   var index = index || window.plugin.portalDiscoverer.portalIndex;
-  console.log("discoverer addIndex", data.k.length);
   for (var i=0; i < data.k.length; i++) {
     var ll = [data.k[i][1], data.k[i][0]];
     var key = _llstring(ll);
@@ -238,10 +219,8 @@ window.plugin.portalDiscoverer.addIndex = function(data, index) {
 }
 
 window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
-    console.log("discoverer index data", data.k.length);
     window.plugin.portalDiscoverer.addIndex(data);
 
-    console.log("discoverer saving index to localStorage");
     localStorage.setItem("known_portal_index", JSON.stringify(window.plugin.portalDiscoverer.portalIndex));
 
     window.plugin.portalDiscoverer.fetchSpi();
@@ -249,7 +228,6 @@ window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
 };
 window.plugin.portalDiscoverer.fetchSpi = function() {
   _xhr('GET', window.plugin.portalDiscoverer.base_url+"spi", function(data) {
-      console.log("discoverer got spi", data)
       window.plugin.portalDiscoverer.addIndex(data, window.plugin.portalDiscoverer.foundPortalIndex);
       window.plugin.portalDiscoverer.processPortalQueue();
   });
@@ -257,7 +235,6 @@ window.plugin.portalDiscoverer.fetchSpi = function() {
 
 
 window.plugin.portalDiscoverer.processPortalQueue = function() {
-  console.log("discoverer handle portalQueue", window.plugin.portalDiscoverer.portalQueue.length);
   for (i=0; i < window.plugin.portalDiscoverer.portalQueue.length; i++) {
     var llstring = window.plugin.portalDiscoverer.portalQueue[i][0];
     var idx = window.plugin.portalDiscoverer.portalQueue[i][1];
