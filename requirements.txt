@@ -12,4 +12,4 @@ djangorestframework==3.6.3
 
 
 #django-allauth==0.32.0
-git+https://github.com/coffindragger/django-allauth.git@0.33.0-coffindragger
+git+https://github.com/coffindragger/django-allauth.git@0.33.1-coffindragger
