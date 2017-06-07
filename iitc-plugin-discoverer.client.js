@@ -57,6 +57,7 @@ var _latlng_in_bounds = function(latlng, bounds) {
 window.plugin.portalDiscoverer = function() {};
 window.plugin.portalDiscoverer.portalQueue = [];
 window.plugin.portalDiscoverer.portalIndex = {};
+window.plugin.portalDiscoverer.foundPortalIndex = {};
 window.plugin.portalDiscoverer.newPortals = {};
 
 window.plugin.portalDiscoverer.base_url = undefined;
@@ -103,7 +104,13 @@ window.plugin.portalDiscoverer.setup  = function() {
 window.plugin.portalDiscoverer.highlight = function(data) {
   var ll = data.portal._latlng.lat+","+data.portal._latlng.lng
 
-  if (!(ll in window.plugin.portalDiscoverer.portalIndex)) {
+  if (ll in window.plugin.portalDiscoverer.foundPortalIndex) {
+    data.portal.setStyle({
+      fillColor: "magenta",
+      fillOpacity: 1.0
+    })
+  }
+  else if (!(ll in window.plugin.portalDiscoverer.portalIndex)) {
     data.portal.setStyle({
       fillColor: "red",
       fillOpacity: 1.0
@@ -192,7 +199,7 @@ window.plugin.portalDiscoverer.checkInPortal = function(llstring, idx) {
       return;
   }
 
-  if (!(llstring in window.plugin.portalDiscoverer.portalIndex)) {
+  if (!(llstring in window.plugin.portalDiscoverer.portalIndex) && !(llstring in window.plugin.portalDiscoverer.foundPortalIndex)) {
     if (!(llstring in window.plugin.portalDiscoverer.newPortals)) {
       console.log("discoverer adding to newPortals!");
       window.plugin.portalDiscoverer.newPortals[llstring] = idx;
@@ -220,12 +227,13 @@ window.plugin.portalDiscoverer.sendNewPortals = function() {
 };
 
 
-window.plugin.portalDiscoverer.addIndex = function(data) {
+window.plugin.portalDiscoverer.addIndex = function(data, index) {
+  var index = index || window.plugin.portalDiscoverer.portalIndex;
   console.log("discoverer addIndex", data.k.length);
   for (var i=0; i < data.k.length; i++) {
     var ll = [data.k[i][1], data.k[i][0]];
     var key = _llstring(ll);
-    window.plugin.portalDiscoverer.portalIndex[key] = true;
+    index[key] = true;
   }
 }
 
@@ -242,7 +250,7 @@ window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
 window.plugin.portalDiscoverer.fetchSpi = function() {
   _xhr('GET', window.plugin.portalDiscoverer.base_url+"spi", function(data) {
       console.log("discoverer got spi", data)
-      window.plugin.portalDiscoverer.addIndex(data);
+      window.plugin.portalDiscoverer.addIndex(data, window.plugin.portalDiscoverer.foundPortalIndex);
       window.plugin.portalDiscoverer.processPortalQueue();
   });
 }
