@@ -59,7 +59,8 @@ window.plugin.portalDiscoverer.portalQueue = [];
 window.plugin.portalDiscoverer.portalIndex = null;
 window.plugin.portalDiscoverer.newPortals = {};
 
-window.plugin.portalDiscoverer.base_url = "https://28fcf9fc.ngrok.io/";
+window.plugin.portalDiscoverer.base_url = undefined;
+//"https://28fcf9fc.ngrok.io/";
 window.plugin.portalDiscoverer.how_many_new_portals = 1;
 
 
@@ -71,14 +72,19 @@ window.plugin.portalDiscoverer.filter_bounds = [
 window.plugin.portalDiscoverer.setup  = function() {
 
   var portal_cache = localStorage.getItem("known_portal_index");
+  var base_url = localStorage.getItem("base_url")
+  if (base_url) {
+    window.plugin.portalDiscoverer.base_url = base_url;
+  } else {
+    console.log("discoverer no base_url!")
+  }
+
   if (portal_cache) {
     window.plugin.portalDiscoverer.portalIndex = JSON.parse(portal_cache);
     console.log("discoverer found existing index", window.plugin.portalDiscoverer.portalIndex.length);
   } else {
     console.log("discoverer has no index, fetching");
-    // var index_url = "https://rocky-coast-43626.herokuapp.com/pidx";
-    // var index_url = "https://28fcf9fc.ngrok.io/pidx";
-    _xhr('GET', window.plugin.portalDiscoverer.base_url+"pidx", window.plugin.portalDiscoverer.handleKnownIndex);
+    window.plugin.portalDiscoverer.fetchIndex();
   }
 
   addHook('portalAdded', window.plugin.portalDiscoverer.handlePortalAdded);
@@ -87,9 +93,34 @@ window.plugin.portalDiscoverer.setup  = function() {
   $('#toolbox').append('<a onclick="window.plugin.portalDiscoverer.displayLoginDialog()">Discoverer</a>');
 };
 
+window.plugin.portalDiscoverer.fetchIndex = function() {
+    if (window.plugin.portalDiscoverer.base_url) {
+        _xhr('GET', window.plugin.portalDiscoverer.base_url+"pidx", window.plugin.portalDiscoverer.handleKnownIndex);
+    } else {
+    }
+};
 
 window.plugin.portalDiscoverer.displayLoginDialog = function() {
-  var html = '<iframe src="https://rocky-coast-43626.herokuapp.com/pidx"></iframe>';
+  var html = $('<div/>');
+  if (window.plugin.portalDiscoverer.base_url) {
+    html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'spi"></iframe>');
+    html.append($('<button>Clear Server</button>').click(function() {
+        console.log("discoverer clear click");
+        window.plugin.portalDiscoverer.base_url = undefined;
+    }))
+  } else {
+    var server_input = $('<input id="discoverer_server_url" type="text"/>');
+    var sbut = $('<button>Save</button>');
+    sbut.click(function() {
+        console.log("discoverer sbut click", server_input, server_input.val());
+        window.plugin.portalDiscoverer.base_url = server_input.val();
+        localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
+        window.plugin.portalDiscoverer.fetchIndex();
+    })
+    html = $('<div/>')
+    html.append(server_input)
+    html.append(sbut)
+  }
 
   dialog({
     'html': html,
