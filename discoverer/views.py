@@ -19,6 +19,7 @@ class Home(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(Home, self).get_context_data(**kwargs)
+        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex')
         if self.request.user.has_perm('discoverer.read_own_portalinfo'):
             context.update(dict(
                 portals=PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')

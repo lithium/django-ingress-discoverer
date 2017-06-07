@@ -3,7 +3,7 @@
 {% load humanize %}
 
 {% block content %}
-{% if portals %}
+{% if is_authorized %}
 <table class="table">
     <tr>
         <th>Portal</th>
@@ -14,7 +14,13 @@
         <td><a href="https://www.ingress.com/intel?ll={{ portal.lat }},{{ portal.lng }}&z=17" target="_blank">{{ portal.name }}</a></td>
         <td>{{ portal.created_at|naturaltime }}</td>
     </tr>
+    {% empty %}
+    <tr>
+        <td class="empty">You haven't discovered any portals yet.</td>
+    </tr>
     {% endfor %}
 </table>
+{% else %}
+<p>Unauthorized</p>
 {% endif %}
 {% endblock %}
