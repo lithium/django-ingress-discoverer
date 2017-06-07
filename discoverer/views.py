@@ -68,9 +68,18 @@ class SubmitPortalInfos(APIView):
     )
 
     def get(self, request, *args, **kwargs):
-        portals = PortalInfo.objects.filter(created_by=request.user).order_by('-created_at')
-        serializer = PortalInfoSerializer(portals, many=True)
-        return Response(serializer.data)
+        if request.user.has_perm('discoverer.read_portalinfo'):
+            portals = PortalInfo.objects.all()
+        elif request.user.has_perm('discoverer.read_own_portalinfo'):
+            portals = PortalInfo.objects.filter(created_by=request.user)
+        else:
+            raise Http404
+        portals = portals.order_by('-created_at')
+
+        idx = {
+            'k': [[p.lng, p.lat] for p in portals]
+        }
+        return Response(idx)
 
     def post(self, request, *args, **kwargs):
         serializer = PortalInfoSerializer(data=request.data, many=True)

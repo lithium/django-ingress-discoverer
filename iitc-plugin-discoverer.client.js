@@ -56,7 +56,7 @@ var _latlng_in_bounds = function(latlng, bounds) {
 // use own namespace for plugin
 window.plugin.portalDiscoverer = function() {};
 window.plugin.portalDiscoverer.portalQueue = [];
-window.plugin.portalDiscoverer.portalIndex = null;
+window.plugin.portalDiscoverer.portalIndex = {};
 window.plugin.portalDiscoverer.newPortals = {};
 
 window.plugin.portalDiscoverer.base_url = undefined;
@@ -82,6 +82,7 @@ window.plugin.portalDiscoverer.setup  = function() {
   if (portal_cache) {
     window.plugin.portalDiscoverer.portalIndex = JSON.parse(portal_cache);
     console.log("discoverer found existing index", window.plugin.portalDiscoverer.portalIndex.length);
+    window.plugin.portalDiscoverer.fetchSpi();
   } else {
     console.log("discoverer has no index, fetching");
     window.plugin.portalDiscoverer.fetchIndex();
@@ -182,7 +183,7 @@ window.plugin.portalDiscoverer.checkInPortal = function(llstring, idx) {
 };
 
 window.plugin.portalDiscoverer.sendNewPortals = function() {
-  if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) > window.plugin.portalDiscoverer.how_many_new_portals) {
+  if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) >= window.plugin.portalDiscoverer.how_many_new_portals) {
     var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
     window.plugin.portalDiscoverer.newPortals = {};
     console.log("discoverer posting new portals ", portalsToSend);
@@ -193,25 +194,41 @@ window.plugin.portalDiscoverer.sendNewPortals = function() {
 };
 
 
-window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
-  console.log("discoverer index data", data.k.length);
-  window.plugin.portalDiscoverer.portalIndex = {};
-  for (var i =0; i < data.k.length; i++) {
+window.plugin.portalDiscoverer.addIndex = function(data) {
+  console.log("discoverer addIndex", data.k.length);
+  for (var i=0; i < data.k.length; i++) {
     var ll = [data.k[i][1], data.k[i][0]];
     var key = _llstring(ll);
     window.plugin.portalDiscoverer.portalIndex[key] = true;
   }
+}
 
-  console.log("discoverer saving index to localStorage");
-  localStorage.setItem("known_portal_index", JSON.stringify(window.plugin.portalDiscoverer.portalIndex));
+window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
+    console.log("discoverer index data", data.k.length);
+    window.plugin.portalDiscoverer.addIndex(data);
 
+    console.log("discoverer saving index to localStorage");
+    localStorage.setItem("known_portal_index", JSON.stringify(window.plugin.portalDiscoverer.portalIndex));
+
+    window.plugin.portalDiscoverer.fetchSpi();
+
+};
+window.plugin.portalDiscoverer.fetchSpi = function() {
+  _xhr('GET', window.plugin.portalDiscoverer.base_url+"spi", function(data) {
+      console.log("discoverer got spi", data)
+      window.plugin.portalDiscoverer.addIndex(data);
+      window.plugin.portalDiscoverer.processPortalQueue();
+  });
+}
+
+
+window.plugin.portalDiscoverer.processPortalQueue = function() {
   console.log("discoverer handle portalQueue", window.plugin.portalDiscoverer.portalQueue.length);
   for (i=0; i < window.plugin.portalDiscoverer.portalQueue.length; i++) {
     var llstring = window.plugin.portalDiscoverer.portalQueue[i][0];
     var idx = window.plugin.portalDiscoverer.portalQueue[i][1];
     window.plugin.portalDiscoverer.checkInPortal(llstring, idx);
   }
-
 };
 
 

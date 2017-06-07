@@ -65,7 +65,7 @@ class PortalInfo(AuditedModel):
         ordering = ('name',)
         unique_together = ('lat','lng')
         permissions = (
-            ("read_own_portalinfo", "Allowed to see the list of portals you've discoveredj"),
+            ("read_own_portalinfo", "Allowed to see the list of portals you've discovered"),
             ("read_portalinfo", "Allowed to see the list of all discovered portals"),
         )
 
