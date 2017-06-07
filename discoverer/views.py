@@ -57,7 +57,6 @@ class DownloadKml(PermissionRequiredMixin, View):
         return response
 
 
-
 class PortalInfoSerializer(serializers.Serializer):
     name = serializers.CharField()
     latlng = serializers.ListField(child=serializers.DecimalField(max_digits=9, decimal_places=6), min_length=2, max_length=2, source='llarray')

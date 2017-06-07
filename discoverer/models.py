@@ -75,11 +75,17 @@ class PortalInfoManager(models.Manager):
                 KML_ElementMaker.name(portalinfo.name),
                 KML_ElementMaker.description(portalinfo.intel_href),
                 KML_ElementMaker.Point(
-                    KML_ElementMaker.coordinates(portalinfo.latlng)
+                    KML_ElementMaker.coordinates("{},{}".format(portalinfo.lng, portalinfo.lat))
                 )
             )
             kml_folder.append(placemark)
-        kmlfile = ContentFile(etree.tostring(kml_folder), name="{}.kml".format(dataset_name))
+
+        doc = KML_ElementMaker.kml(
+            KML_ElementMaker.Document(
+                kml_folder
+            )
+        )
+        kmlfile = ContentFile(etree.tostring(doc), name="{}.kml".format(dataset_name))
         return kmlfile
 
 

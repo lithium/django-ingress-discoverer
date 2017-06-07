@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 
-from discoverer.models import PortalInfo, PortalIndex, DiscovererUser
+from discoverer.models import PortalInfo, PortalIndex, DiscovererUser, KmlOutput
 
 
 class PermissionAdmin(admin.ModelAdmin):
@@ -52,3 +52,8 @@ class DiscovererUserAdmin(UserAdmin):
             return super(DiscovererUserAdmin, self).change_view(request, *args, **kwargs)
 
 admin.site.register(DiscovererUser, DiscovererUserAdmin)
+
+
+class KmlOutputAdmin(AuditedModelAdmin):
+    list_display = ('name','created_at')
+admin.site.register(KmlOutput, KmlOutputAdmin)
