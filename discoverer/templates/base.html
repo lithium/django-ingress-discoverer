@@ -20,13 +20,15 @@
     {% endblock %}
 <div>
     <ul>
+        {% if user.has_kml_download_perm %}
+        <li><a target="_blank" href="{% url 'download_kml' %}">Download .kml</a></li>
+        {% endif %}
+        {% if user.is_staff %}
+        <li><a target="_blank" href="{% url 'admin:index' %}">Staff</a></li>
+        {% endif %}
         {% if user.is_authenticated %}
         <li><a href="{% url 'account_logout' %}">Sign Out ({{ user }})</a></li>
         {% endif %}
-        {% if user.is_staff %}
-        <li><a href="{% url 'admin:index' %}">Staff</a></li>
-        {% endif %}
-
     </ul>
 </div>
 {% endblock %}

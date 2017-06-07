@@ -10,7 +10,7 @@ from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from discoverer.models import PortalIndex, PortalInfo
+from discoverer.models import PortalIndex, PortalInfo, KmlOutput
 
 
 @method_decorator(login_required, name='dispatch')
@@ -40,6 +40,22 @@ class ServeIndex(PermissionRequiredMixin, View):
         response = StreamingHttpResponse(idx.indexfile)
         response['Content-Length'] = idx.indexfile.size
         return response
+
+
+@method_decorator(login_required, name='dispatch')
+class DownloadKml(PermissionRequiredMixin, View):
+    permission_required = ('discoverer.read_kmloutput',)
+    raise_exception = True
+
+    def get(self, *args, **kwargs):
+        kml_output = KmlOutput.objects.get_current()
+        if kml_output is None:
+            raise Http404
+        response = StreamingHttpResponse(kml_output.kmlfile)
+        response['Content-Length'] = kml_output.kmlfile.size
+        response['Content-Disposition'] = 'attachment; filename="{}.kml"'.format(kml_output.name)
+        return response
+
 
 
 class PortalInfoSerializer(serializers.Serializer):
@@ -95,3 +111,4 @@ class SubmitPortalInfos(APIView):
             created_by=request.user,
         )
         return Response("ok")
+
