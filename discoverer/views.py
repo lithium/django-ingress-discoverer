@@ -41,7 +41,7 @@ class PortalInfoSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
 
     def create(self, validated_data):
-        latlng = validated_data.get('latlng')
+        latlng = validated_data.get('llarray')
         portalinfo, created = PortalInfo.objects.get_or_create(
             lat=latlng[0],
             lng=latlng[1],
