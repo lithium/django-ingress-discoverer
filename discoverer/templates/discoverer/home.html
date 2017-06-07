@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 
+{% load humanize %}
+
 {% block content %}
-<p>hello world</p>
-<p>{{request.user}}</p>
+{% if portals %}
+<table>
+    <tr>
+        <th>Portal</th>
+        <th>Discovered</th>
+    </tr>
+    {% for portal in portals %}
+    <tr>
+        <td><a href="https://www.ingress.com/intel?ll={{ portal.lat }},{{ portal.lng }}&z=17" target="_blank">{{ portal.name }}</a></td>
+        <td>{{ portal.created_at|naturaltime }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
 {% endblock %}

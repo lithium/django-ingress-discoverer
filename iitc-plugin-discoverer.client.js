@@ -73,6 +73,7 @@ window.plugin.portalDiscoverer.setup  = function() {
 
   var portal_cache = localStorage.getItem("known_portal_index");
   var base_url = localStorage.getItem("base_url")
+  console.log("discoverer bavse_url", base_url)
   if (base_url) {
     window.plugin.portalDiscoverer.base_url = base_url;
   } else {
@@ -104,17 +105,22 @@ window.plugin.portalDiscoverer.fetchIndex = function() {
 window.plugin.portalDiscoverer.displayLoginDialog = function() {
   var html = $('<div/>');
   if (window.plugin.portalDiscoverer.base_url) {
-    html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'spi"></iframe>');
+    html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'"></iframe>');
     html.append($('<button>Clear Server</button>').click(function() {
         console.log("discoverer clear click");
         window.plugin.portalDiscoverer.base_url = undefined;
+        localStorage.removeItem("base_url")
     }))
   } else {
     var server_input = $('<input id="discoverer_server_url" type="text"/>');
     var sbut = $('<button>Save</button>');
     sbut.click(function() {
         console.log("discoverer sbut click", server_input, server_input.val());
-        window.plugin.portalDiscoverer.base_url = server_input.val();
+        var url = server_input.val();
+        if (!url.endsWith('/')) {
+          url += '/'
+        }
+        window.plugin.portalDiscoverer.base_url = url;
         localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
         window.plugin.portalDiscoverer.fetchIndex();
     })
@@ -183,6 +189,9 @@ window.plugin.portalDiscoverer.checkInPortal = function(llstring, idx) {
 };
 
 window.plugin.portalDiscoverer.sendNewPortals = function() {
+  if (!window.plugin.portalDiscoverer.base_url)
+      return;
+
   if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) >= window.plugin.portalDiscoverer.how_many_new_portals) {
     var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
     window.plugin.portalDiscoverer.newPortals = {};

@@ -17,10 +17,17 @@ from discoverer.models import PortalIndex, PortalInfo
 class Home(TemplateView):
     template_name = 'discoverer/home.html'
 
+    def get_context_data(self, **kwargs):
+        context = super(Home, self).get_context_data(**kwargs)
+        if self.request.user.has_perm('discoverer.read_own_portalinfo'):
+            context.update(dict(
+                portals=PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
+            ))
+        return context
+
 
 @method_decorator(login_required, name='dispatch')
 class ServeIndex(PermissionRequiredMixin, View):
-    permanent = False
     permission_required = ('discoverer.read_portalindex',)
     raise_exception = True
     http_method_names = ('get',)
@@ -74,7 +81,6 @@ class SubmitPortalInfos(APIView):
             portals = PortalInfo.objects.filter(created_by=request.user)
         else:
             raise Http404
-        portals = portals.order_by('-created_at')
 
         idx = {
             'k': [[p.lng, p.lat] for p in portals]
