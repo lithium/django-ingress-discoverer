@@ -1,6 +1,8 @@
 import json
 
 import os
+import datetime
+from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -42,10 +44,8 @@ class Home(TemplateView):
 class Leaderboard(TemplateView):
     template_name = 'discoverer/leaderboard.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(Leaderboard, self).get_context_data(**kwargs)
-        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
-        created_by_counts = PortalInfo.objects.values('created_by').order_by().annotate(Count('created_by'))
+    def build_leaderboard(self, queryset):
+        created_by_counts = queryset.values('created_by').order_by().annotate(Count('created_by'))
         users = []
         for row in created_by_counts:
             try:
@@ -54,9 +54,15 @@ class Leaderboard(TemplateView):
                 pass
             else:
                 users.append([user, row.get('created_by__count')])
+        return reversed(sorted(users, lambda a, b: cmp(a[1], b[1])))
 
-        leaderboard = reversed(sorted(users, lambda a,b: cmp(a[1], b[1])))
-        context['leaderboard'] = leaderboard
+    def get_context_data(self, **kwargs):
+        context = super(Leaderboard, self).get_context_data(**kwargs)
+        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
+        context['leaderboard'] = self.build_leaderboard(PortalInfo.objects.all())
+        context['recent_leaderboard'] = self.build_leaderboard(PortalInfo.objects.filter(
+            created_at__gte=timezone.now() - datetime.timedelta(days=1)
+        ))
         return context
 
 

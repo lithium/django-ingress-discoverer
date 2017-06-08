@@ -5,7 +5,22 @@
 {% block content %}
 {% if is_authorized %}
 
-    <table class="leaderboard">
+<div class="leaderboard">
+    <h3>Today</h3>
+    <table>
+        {% for row in recent_leaderboard %}
+        <tr>
+            <td>#{{forloop.counter}}.</td>
+            <td>{{row.0}}</td>
+            <td>{{row.1}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="leaderboard">
+    <h3>Total</h3>
+    <table>
     {% for row in leaderboard %}
         <tr>
             <td>#{{forloop.counter}}.</td>
@@ -14,6 +29,9 @@
         </tr>
     {% endfor %}
     </table>
+</div>
+
+<div class="clear"></div>
 {% else %}
 <p>Unauthorized</p>
 {% endif %}
