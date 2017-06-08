@@ -1,8 +1,11 @@
+import json
+
 import os
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -76,6 +79,19 @@ class DownloadPlugin(PermissionRequiredMixin, View):
         return response
 
 
+def exists_in_index(latlng):
+    _idx = cache.get("latlng_index")
+    if _idx is None:
+        idx = PortalIndex.objects.get_active()
+        _idx = {}
+        known_obj = json.loads(idx.indexfile.file.read())
+        for ll in known_obj.get('k', []):
+            _idx["{},{}".format(ll[1], ll[0])] = True
+        cache.set("latlng_index", _idx)
+    key = "{},{}".format(*latlng)
+    return key in _idx
+
+
 class PortalInfoSerializer(serializers.Serializer):
     name = serializers.CharField()
     latlng = serializers.ListField(child=serializers.DecimalField(max_digits=9, decimal_places=6), min_length=2, max_length=2, source='llarray')
@@ -84,6 +100,8 @@ class PortalInfoSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         latlng = validated_data.get('llarray')
+        if exists_in_index(latlng):
+            return None
         portalinfo, created = PortalInfo.objects.get_or_create(
             lat=latlng[0],
             lng=latlng[1],
