@@ -26,10 +26,23 @@ admin.site.register(PortalIndex, PortalIndexAdmin)
 
 
 class PortalInfoAdmin(AuditedModelAdmin):
-    list_display = ('name', 'latlng', 'county', 'created_by', 'created_at')
+    list_display = ('name', 'latlng', 'stored_county', 'created_by', 'created_at')
     list_filter = ('created_at', 'created_by', 'stored_county')
-    readonly_fields = ('created_at', 'created_by', 'updated_at', 'updated_by')
+    readonly_fields = ('created_at', 'created_by', 'updated_at', 'updated_by', 'county')
     ordering = ('-created_at',)
+    fieldsets = (
+        ('Meta', {
+            'classes': ('collapse',),
+            'fields': ('created_at','created_by','updated_at','updated_by')
+        }),
+        (None, {
+            'fields': ('lat', 'lng', 'name'),
+        }),
+        ('Geo', {
+            'fields': ('county', 'stored_county'),
+        }),
+
+    )
 admin.site.register(PortalInfo, PortalInfoAdmin)
 
 

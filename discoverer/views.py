@@ -27,7 +27,7 @@ class Home(TemplateView):
             own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
             context.update(dict(
                 total_you_discovered=own_portals.count(),
-                portals=own_portals[:20]
+                portals=own_portals[:10]
             ))
         if self.request.user.has_perm('discoverer.read_portalinfo'):
             context['total_discovered'] = PortalInfo.objects.all().count()
