@@ -143,9 +143,10 @@ class PortalInfo(AuditedModel):
 class KmlOutputManager(models.Manager):
     def get_current(self):
         latest = self.get_latest()
-        if latest:
-            return latest
-        return self.create_from_portalinfos()
+        current_portal_count = PortalInfo.objects.all().count()
+        if latest is None or latest.portal_count < current_portal_count:
+            return self.create_from_portalinfos()
+        return latest
 
     def get_latest(self):
         return self.all().order_by('-portal_count').first()
@@ -155,9 +156,8 @@ class KmlOutputManager(models.Manager):
         current_portal_count = PortalInfo.objects.all().count()
         if latest is None or latest.portal_count < current_portal_count:
             now = timezone.now()
-            # none exists or a new one needs to be made
             dataset_name = "OPS-{previous}-{latest}".format(
-                previous="071916" if latest is None else latest.created_at.strftime("%m%d%y"),
+                previous="071916",
                 latest=now.strftime("%m%d%y")
             )
             kmlfile = PortalInfo.objects.get_kmlfile(dataset_name=dataset_name)
