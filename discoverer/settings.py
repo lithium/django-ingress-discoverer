@@ -71,9 +71,11 @@ MIDDLEWARE = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
     'www.ingress.com',
+    'ingress.com',
 )
 CSRF_TRUSTED_ORIGINS = [
     'www.ingress.com',
+    'ingress.com',
 ]
 
 
