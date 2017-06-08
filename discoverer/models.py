@@ -45,6 +45,10 @@ class DiscovererUser(AuditedModel, AbstractUser):
     def has_kml_download_perm(self):
         return self.has_perm('discoverer.read_kmloutput')
 
+    @property
+    def has_leaderboard_perm(self):
+        return self.has_perm('discoverer.read_portalinfo')
+
 
 class PortalIndex(AuditedModel):
     is_active = models.BooleanField(default=False)

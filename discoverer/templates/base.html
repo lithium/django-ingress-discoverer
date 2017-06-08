@@ -14,6 +14,21 @@
             padding: 4px;
             display: inline;
         }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 1em;
+        }
+        nav ul li {
+            display: inline;
+            border: 1px solid black;
+            padding: 8px;
+        }
+        nav a {
+            text-decoration: none;
+            font-family: sans-serif;
+        }
     </style>
     {% block extra_head %}
     {% endblock %}
@@ -23,11 +38,22 @@
 
     {% block content %}
     {% endblock %}
-<div>
+<nav>
     <ul>
         {% if user.has_kml_download_perm %}
         <li><a target="_blank" href="{% url 'download_kml' %}">Download .kml</a></li>
         {% endif %}
+
+        {% if request.path == "/hiscore" %}
+            {% if user.has_leaderboard_perm %}
+            <li><a href="/">Stats</a></li>
+            {% endif %}
+        {% else %}
+            {% if user.has_leaderboard_perm %}
+            <li><a href="{% url 'leaderboard' %}">Hi-Score</a></li>
+            {% endif %}
+        {% endif %}
+
         {% if user.is_staff %}
         <li><a target="_blank" href="{% url 'admin:index' %}">Staff</a></li>
         {% endif %}
@@ -35,7 +61,7 @@
         <li><a href="{% url 'account_logout' %}">Sign Out ({{ user }})</a></li>
         {% endif %}
     </ul>
-</div>
+</nav>
 {% endblock %}
 
 {% block extra_body %}

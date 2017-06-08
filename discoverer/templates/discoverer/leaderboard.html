@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% load humanize %}
+
+{% block content %}
+{% if is_authorized %}
+
+    <table class="leaderboard">
+    {% for row in leaderboard %}
+        <tr>
+            <td>#{{forloop.counter}}.</td>
+            <td>{{row.0}}</td>
+            <td>{{row.1}}</td>
+        </tr>
+    {% endfor %}
+    </table>
+{% else %}
+<p>Unauthorized</p>
+{% endif %}
+
+{% endblock %}

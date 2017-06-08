@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.db.models import Count
 from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -14,7 +15,7 @@ from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from discoverer.models import PortalIndex, PortalInfo, KmlOutput
+from discoverer.models import PortalIndex, PortalInfo, KmlOutput, DiscovererUser
 
 
 @method_decorator(login_required, name='dispatch')
@@ -34,6 +35,28 @@ class Home(TemplateView):
             ))
         if self.request.user.has_perm('discoverer.read_portalinfo'):
             context['total_discovered'] = PortalInfo.objects.all().count()
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class Leaderboard(TemplateView):
+    template_name = 'discoverer/leaderboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(Leaderboard, self).get_context_data(**kwargs)
+        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
+        created_by_counts = PortalInfo.objects.values('created_by').order_by().annotate(Count('created_by'))
+        users = []
+        for row in created_by_counts:
+            try:
+                user = DiscovererUser.objects.get(pk=row.get('created_by'))
+            except DiscovererUser.DoesNotExist:
+                pass
+            else:
+                users.append([user, row.get('created_by__count')])
+
+        leaderboard = reversed(sorted(users, lambda a,b: cmp(a[1], b[1])))
+        context['leaderboard'] = leaderboard
         return context
 
 
@@ -147,4 +170,5 @@ class SubmitPortalInfos(APIView):
             created_by=request.user,
         )
         return Response("ok")
+
 
