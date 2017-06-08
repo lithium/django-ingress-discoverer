@@ -8,6 +8,8 @@ from django.db import models, transaction
 from django.utils import timezone
 from pykml.factory import KML_ElementMaker
 
+from discoverer.utils import geolookup
+
 
 class AuditedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -94,6 +96,7 @@ class PortalInfo(AuditedModel):
     lng = models.DecimalField(max_digits=9, decimal_places=6)
     name = models.CharField(max_length=254)
     guid = models.CharField(max_length=254, blank=True, null=True, db_index=True)
+    stored_county = models.CharField(max_length=254, blank=True, null=True, db_index=True)
 
     objects = PortalInfoManager()
 
@@ -107,6 +110,18 @@ class PortalInfo(AuditedModel):
 
     def __unicode__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.stored_county:
+            self.stored_county = geolookup('county', self.latlng)
+        return super(PortalInfo, self).save(*args, **kwargs)
+
+    @property
+    def county(self):
+        if not self.stored_county:
+            self.stored_county = geolookup('county', self.latlng)
+            self.save()
+        return self.stored_county
 
     @property
     def latlng(self):

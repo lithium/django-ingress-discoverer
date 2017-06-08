@@ -4,14 +4,17 @@
 
 {% block content %}
 {% if is_authorized %}
+
 <table class="table">
     <tr>
         <th>Portal</th>
+        <th>County</th>
         <th>Discovered</th>
     </tr>
     {% for portal in portals %}
     <tr>
         <td><a href="https://www.ingress.com/intel?ll={{ portal.lat }},{{ portal.lng }}&z=17" target="_blank">{{ portal.name }}</a></td>
+        <td>{{ portal.county }}</td>
         <td>{{ portal.created_at|naturaltime }}</td>
     </tr>
     {% empty %}
@@ -20,6 +23,11 @@
     </tr>
     {% endfor %}
 </table>
+
+<p>
+    Discovered By You: <span>{{ total_you_discovered }}</span><br>
+    Discovered Total: <span>{{ total_discovered }}</span>
+</p>
 
 {% else %}
 <p>Unauthorized</p>

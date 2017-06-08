@@ -24,9 +24,13 @@ class Home(TemplateView):
                                    self.request.user.has_perm('discoverer.read_iitcplugin')
         context['site'] = Site.objects.get_current(request=self.request)
         if self.request.user.has_perm('discoverer.read_own_portalinfo'):
+            own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
             context.update(dict(
-                portals=PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
+                total_you_discovered=own_portals.count(),
+                portals=own_portals[:20]
             ))
+        if self.request.user.has_perm('discoverer.read_portalinfo'):
+            context['total_discovered'] = PortalInfo.objects.all().count()
         return context
 
 
