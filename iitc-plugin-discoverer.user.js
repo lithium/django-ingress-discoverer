@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        1.1.0
+// @version        1.1.1
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -122,6 +122,13 @@ window.plugin.portalDiscoverer.fetchIndex = function() {
 window.plugin.portalDiscoverer.displayLoginDialog = function() {
   var html = $('<div/>');
   if (window.plugin.portalDiscoverer.base_url) {
+    var refreshidxbtn = $('<button style="margin-left: 1em">Refresh Index</button>')
+    refreshidxbtn.click(function() {
+        window.plugin.portalDiscoverer.portalIndex = {};
+        localStorage.removeItem("known_portal_index");
+        window.plugin.portalDiscoverer.fetchIndex();
+    })
+    html.append($('<p>Known Index: '+Object.keys(window.plugin.portalDiscoverer.portalIndex).length+'</p>').append(refreshidxbtn))
     html.append('<iframe style="width: 670px" src="'+window.plugin.portalDiscoverer.base_url+'"></iframe>');
     html.append($('<button>Clear Server</button>').click(function() {
         window.plugin.portalDiscoverer.base_url = undefined;
