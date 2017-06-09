@@ -115,7 +115,7 @@ def exists_in_index(latlng):
         _idx = {}
         known_obj = json.loads(idx.indexfile.file.read())
         for ll in known_obj.get('k', []):
-            _idx["{},{}".format(ll[1], ll[0])] = True
+            _idx["{:.6f},{:.6f}".format(ll[1], ll[0])] = True
         cache.set("latlng_index", _idx)
     key = "{},{}".format(*latlng)
     return key in _idx

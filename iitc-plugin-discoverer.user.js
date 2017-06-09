@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        1.1.1
+// @version        1.1.2
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -44,7 +44,7 @@ var _xhr = function(method, url, cb, data, async) {
 
 };
 var _llstring = function(latlng) {
-  return latlng[0]+","+latlng[1];
+  return Number(latlng[0]).toFixed(6)+","+Number(latlng[1]).toFixed(6);
 };
 var _latlng_in_bounds = function(latlng, bounds) {
     return ((latlng[0] <= bounds[0][0] && latlng[0] >= bounds[1][0]) &&
