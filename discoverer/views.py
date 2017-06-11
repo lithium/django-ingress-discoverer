@@ -12,12 +12,14 @@ from django.db.models import Count
 from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.http import last_modified, etag
 from django.views.generic import TemplateView
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from discoverer.models import PortalIndex, PortalInfo, KmlOutput, DiscovererUser
+from discoverer.portalindex.helpers import PortalIndexHelper, MongoPortalIndex
 
 
 @method_decorator(login_required, name='dispatch')
@@ -66,18 +68,26 @@ class Leaderboard(TemplateView):
         return context
 
 
+def _portal_index_last_modified(*args, **kwargs):
+    return MongoPortalIndex().portal_index_last_modified
+
+
+def _portal_index_etag(*args, **kwargs):
+    return MongoPortalIndex().portal_index_etag
+
+
+@method_decorator(etag(_portal_index_etag), name='dispatch')
+@method_decorator(last_modified(_portal_index_last_modified), name='dispatch')
 @method_decorator(login_required, name='dispatch')
 class ServeIndex(PermissionRequiredMixin, View):
     permission_required = ('discoverer.read_portalindex',)
     raise_exception = True
     http_method_names = ('get',)
 
-    def get(self, *args, **kwargs):
-        idx = PortalIndex.objects.get_active()
-        if idx is None:
-            raise Http404
-        response = StreamingHttpResponse(idx.indexfile)
-        response['Content-Length'] = idx.indexfile.size
+    def get(self, request, *args, **kwargs):
+        mpi = MongoPortalIndex()
+        response = HttpResponse(mpi.cached_guid_index_json())
+        response['Cache-Control'] = 'public,max-age=1000'
         return response
 
 

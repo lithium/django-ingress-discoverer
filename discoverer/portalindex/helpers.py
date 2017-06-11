@@ -1,4 +1,5 @@
 import json
+import uuid
 from hashlib import sha1
 
 import os
@@ -6,6 +7,7 @@ import pymongo
 from bson import Code
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.functional import LazyObject
 
 
 class MongoHelper(object):
@@ -31,7 +33,9 @@ class MongoHelper(object):
 class PortalIndexHelper(object):
     portal_index_cache_key = 'portalindexhelper_portal_index'
     portal_index_timestamp_cache_key = 'portalindexhelper_portal_index_timestamp'
+    portal_index_etag_cache_key = 'portalindexhelper_portal_index_etag'
     guid_index_collection_name = "portals_guid_ref_map"
+
 
     def __init__(self):
         self._portals = None
@@ -123,16 +127,43 @@ class PortalIndexHelper(object):
             {"$project": {"_ref": 1, "guid": 1}},
             {"$out": self.guid_index_collection_name}
         ])
+        self.publish()
 
-    def guid_index(self):
+    def publish(self):
+        self._index_json = json.dumps(self.guid_index())
+        cache.set(self.portal_index_cache_key, self._index_json, timeout=None)
+        cache.set(self.portal_index_timestamp_cache_key, timezone.now(), timeout=None)
+        cache.set(self.portal_index_etag_cache_key, str(uuid.uuid4()), timeout=None)
+
+    @property
+    def portal_index_last_modified(self):
+        timestamp = cache.get(self.portal_index_timestamp_cache_key)
+        if timestamp is not None:
+            return timestamp
+        return timezone.now()
+
+    @property
+    def portal_index_etag(self):
+        etag = cache.get(self.portal_index_etag_cache_key)
+        return etag
+
+    def guid_index(self, publish_if_needed=True):
         if self.guid_index_collection_name not in self.mongo.db.collection_names():
             self.publish_guid_index()
         cursor = self.mongo.db[self.guid_index_collection_name]
         idx = {r.get('guid'): r.get('_ref') for r in cursor.find()}
         return idx
 
+    def cached_guid_index_json(self):
+        index_json = cache.get(self.portal_index_cache_key)
+        if not index_json:
+            self.publish()
+            return self._index_json
+        return index_json
 
 
 
-
+class MongoPortalIndex(LazyObject):
+    def _setup(self):
+        self._wrapped = PortalIndexHelper()
 
