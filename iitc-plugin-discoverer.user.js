@@ -145,16 +145,18 @@ function wrapper(plugin_info) {
             return;
         }
 
-        var latlng = _llstring(ll);
         var name = data.portal.options.data.title;
         var guid = data.portal.options.guid
+        var latE6 = data.portal.options.data.latE6;
+        var lngE6 = data.portal.options.data.lngE6;
 
-        if (!(latlng && name && guid)) {
+        if (!(latE6 && lngE6 && name && guid)) {
             return;
         }
 
         var doc = {
-            latlng: latlng,
+            latE6: latE6,
+            lngE6: lngE6,
             name: name,
             guid: guid
         };

@@ -22,10 +22,12 @@ class Command(LabelCommand):
         chunk = []
         inserted = 0
         for p in placemarks:
-            ll = map(lambda f: float(f), p.findall('kml:ExtendedData/kml:SchemaData/kml:SimpleData', ns))
-            llstring = "{:.6f},{:.6f}".format(ll[0], ll[1])
+            ll = p.findall('kml:ExtendedData/kml:SchemaData/kml:SimpleData', ns)
+            latE6 = int(float(ll[0])*1e6)
+            lngE6 = int(float(ll[1])*1e6)
             doc = {
-                'latlng': llstring,
+                'latE6': latE6,
+                'lngE6': lngE6,
                 'name': unicode(p.name).strip(),
                 'timestamp': discover_date,
             }

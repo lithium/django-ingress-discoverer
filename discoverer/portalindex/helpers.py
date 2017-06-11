@@ -4,7 +4,6 @@ from hashlib import sha1
 
 import os
 import pymongo
-from bson import Code
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.functional import LazyObject
@@ -36,7 +35,6 @@ class PortalIndexHelper(object):
     portal_index_etag_cache_key = 'portalindexhelper_portal_index_etag'
     guid_index_collection_name = "portals_guid_ref_map"
 
-
     def __init__(self):
         self._portals = None
         self._mongo = None
@@ -53,42 +51,20 @@ class PortalIndexHelper(object):
             self._portals = self.mongo.db.portals
         return self._portals
 
-    # def build_index_from_portals(self, collection_name='portals'):
-    #     map = Code("function() { emit(this.latlng, [this.name, this.guid]); }")
-    #     reduce = Code("function(key, values) { return values }")
-    #
-    #     results = self.portals.map_reduce(map, reduce, "latlng_index")
-    #     latlng_index = {o['_id']: o['value'] for o in results.find()}
-    #     return latlng_index
-    #
-    # def cached_index_json(self):
-    #     latlng_index_json = cache.get(self.portal_index_cache_key)
-    #     if latlng_index_json is None:
-    #         latlng_index_json = self.publish()
-    #     return latlng_index_json
-    #
-    # def publish(self):
-    #     self._latlng_index = self.build_index_from_portals()
-    #     self._latlng_index_ts = timezone.now()
-    #     latlng_index_json = json.dumps(self._latlng_index)
-    #     cache.set(self.portal_index_cache_key, latlng_index_json)
-    #     cache.set(self.portal_index_timestamp_cache_key, self._latlng_index_ts)
-    #     return latlng_index_json
-
     @classmethod
-    def sha_hash(cls, latlng, name, **kwargs):
-        key = u"{latlng}|{name}|{guid}".format(latlng=latlng, name=name, guid=kwargs.get('guid', "null"))
+    def sha_hash(cls, latE6, lngE6, name, **kwargs):
+        key = u"{lat}|{lng}|{name}|{guid}".format(lat=latE6, lng=lngE6, name=name, guid=kwargs.get('guid', "null"))
         hash = sha1(key.encode('utf-8')).hexdigest()
         return hash
 
-    def update_portal(self, latlng, name, guid=None, timestamp=None):
+    def update_portal(self, latE6, lngE6, name, guid=None, timestamp=None):
         portal = None
 
         if guid is not None:
             portal = self.portals.find_one({'guid': guid})
 
         if portal is None:
-            portal = self.portals.find_one({'latlng': latlng})
+            portal = self.portals.find_one({'latE6': latE6, 'lngE6': lngE6})
 
         if 'guid' in portal and portal['guid'] != guid:
             raise ValueError("guid mismatch!")
@@ -97,7 +73,8 @@ class PortalIndexHelper(object):
             timestamp = timezone.now()
 
         new_doc = {
-            'latlng': latlng,
+            'latE6': latE6,
+            'lngE6': lngE6,
             'name': name,
             'guid': guid,
             'timestamp': timestamp,
@@ -160,7 +137,6 @@ class PortalIndexHelper(object):
             self.publish()
             return self._index_json
         return index_json
-
 
 
 class MongoPortalIndex(LazyObject):
