@@ -1,9 +1,15 @@
 import datetime
 from django.core.management.base import LabelCommand
 from pykml import parser
+from pymongo.errors import BulkWriteError
 
 from discoverer.portalindex.helpers import MongoHelper, PortalIndexHelper
 
+
+_filter_bounds = [
+    [46887566, -125208619],
+    [40258825, -115094343],
+]
 
 class Command(LabelCommand):
     def handle_label(self, label, **options):
@@ -23,8 +29,18 @@ class Command(LabelCommand):
         inserted = 0
         for p in placemarks:
             ll = p.findall('kml:ExtendedData/kml:SchemaData/kml:SimpleData', ns)
+            if len(ll) < 2:
+                print("wha?", p.name, ll)
+                continue
             latE6 = int(float(ll[0])*1e6)
             lngE6 = int(float(ll[1])*1e6)
+            if not(latE6 <= _filter_bounds[0][0] and latE6 >= _filter_bounds[1][0] and
+                   lngE6 >= _filter_bounds[0][1] and lngE6 <= _filter_bounds[1][1]):
+                # print("skipping, out of bounds {},{}".format(latE6, lngE6))
+                continue
+            # else:
+            #     print("In bounds!")
+
             doc = {
                 'latE6': latE6,
                 'lngE6': lngE6,
@@ -36,8 +52,13 @@ class Command(LabelCommand):
             cur_chunk_size = len(chunk)
             if cur_chunk_size >= max_chunk_size:
                 print("insert_many={}".format(cur_chunk_size))
-                collection.insert_many(chunk)
-                inserted += cur_chunk_size
+
+                try:
+                    collection.insert_many(chunk)
+                    inserted += cur_chunk_size
+                except BulkWriteError as e:
+                    print(e.details)
+                    raise
                 chunk = []
         if len(chunk) > 0:
             collection.insert_many(chunk)
