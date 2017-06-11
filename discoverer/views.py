@@ -14,9 +14,10 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import last_modified, etag
 from django.views.generic import TemplateView
+from pymongo.errors import BulkWriteError
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
-from rest_framework.status import HTTP_401_UNAUTHORIZED
+from rest_framework.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
 from discoverer.models import PortalIndex, PortalInfo, KmlOutput, DiscovererUser
@@ -70,11 +71,11 @@ class Leaderboard(TemplateView):
 
 
 def _portal_index_last_modified(*args, **kwargs):
-    return MongoPortalIndex().portal_index_last_modified
+    return MongoPortalIndex.portal_index_last_modified
 
 
 def _portal_index_etag(*args, **kwargs):
-    return MongoPortalIndex().portal_index_etag
+    return MongoPortalIndex.portal_index_etag
 
 
 @method_decorator(etag(_portal_index_etag), name='dispatch')
@@ -86,8 +87,7 @@ class ServeIndex(PermissionRequiredMixin, View):
     http_method_names = ('get',)
 
     def get(self, request, *args, **kwargs):
-        mpi = MongoPortalIndex()
-        response = HttpResponse(mpi.cached_guid_index_json())
+        response = HttpResponse(MongoPortalIndex.cached_guid_index_json())
         response['Cache-Control'] = 'public,max-age=60'
         response['Content-Type'] = 'application/json'
         return response
@@ -125,12 +125,9 @@ class PortalInfoSerializer(serializers.Serializer):
     guid = serializers.CharField()
     latE6 = serializers.IntegerField()
     lngE6 = serializers.IntegerField()
-    updated = serializers.BooleanField(read_only=True)
 
     def create(self, validated_data):
-        validated_data.pop('created_by', None)
-        mpi = MongoPortalIndex()
-        validated_data['updated'] = mpi.update_portal(**validated_data)
+        MongoPortalIndex.update_portal(**validated_data)
         return validated_data
 
 
@@ -141,11 +138,16 @@ class SubmitPortalInfos(APIView):
         if not request.user.has_perm('discoverer.add_portalinfo'):
             return Response(status=HTTP_401_UNAUTHORIZED)
 
+        # TODO: filter request.data where _ref matches index
         serializer = PortalInfoSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        if any(map(lambda p: p.get('updated', False), serializer.data)):
-            MongoPortalIndex().publish_guid_index()
+        try:
+            results = MongoPortalIndex.bulk_op_execute()
+        except BulkWriteError as e:
+            return Response(e.details, status=HTTP_400_BAD_REQUEST)
+        if results.get('nInserted', 0) + results.get('nModified', 0) + results.get('nRemoved', 0) + results.get('nUpserted', 0) > 0:
+            MongoPortalIndex.publish_guid_index()
         return Response("ok")
 
 

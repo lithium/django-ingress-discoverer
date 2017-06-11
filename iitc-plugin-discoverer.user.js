@@ -197,14 +197,14 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.fetchIndex = function() {
         if (window.plugin.portalDiscoverer.base_url) {
-            if (!window.plugin.portalDiscoverer.portalIndex) {
-                window.plugin.portalDiscoverer.portalIndex = {}
-            }
             _xhr('GET', window.plugin.portalDiscoverer.base_url + "pidx", window.plugin.portalDiscoverer.handleKnownIndex);
         }
     };
 
     window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
+        if (!window.plugin.portalDiscoverer.portalIndex) {
+            window.plugin.portalDiscoverer.portalIndex = {}
+        }
         var n = Object.keys(data).length;
         for (var guid in data) {
             if (!data.hasOwnProperty(guid)) continue;

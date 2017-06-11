@@ -38,6 +38,7 @@ class PortalIndexHelper(object):
     def __init__(self):
         self._portals = None
         self._mongo = None
+        self._bulk_op = None
 
     @property
     def mongo(self):
@@ -57,17 +58,19 @@ class PortalIndexHelper(object):
         hash = sha1(key.encode('utf-8')).hexdigest()
         return hash
 
-    def update_portal(self, latE6, lngE6, name, guid=None, timestamp=None):
-        portal = None
+    @property
+    def bulk_op(self):
+        if self._bulk_op is None:
+            self._bulk_op = self.portals.initialize_ordered_bulk_op()
+        return self._bulk_op
 
-        if guid is not None:
-            portal = self.portals.find_one({'guid': guid})
+    def bulk_op_execute(self):
+        if self._bulk_op is not None:
+            result = self._bulk_op.execute()
+            self._bulk_op = None
+            return result
 
-        if portal is None:
-            portal = self.portals.find_one({'latE6': latE6, 'lngE6': lngE6})
-        elif 'guid' in portal and portal['guid'] != guid:
-            raise ValueError("guid mismatch!")
-
+    def update_portal(self, latE6, lngE6, name, guid, timestamp=None):
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -79,23 +82,19 @@ class PortalIndexHelper(object):
             'timestamp': timestamp,
         }
         new_doc['_ref'] = self.sha_hash(**new_doc)
+        # portal = None
 
-        if portal is None:
-            # new portal!
-            self.portals.insert_one(new_doc)
-            return True
-        else:
-            # update to existing portal
-            if new_doc['_ref'] != portal.get('_ref', None):
-                new_doc['_history'] = portal.pop('_history', [])
-                new_doc['_history'].append(portal)
-
-                self.portals.update_one({'_id': portal['_id']}, {"$set": new_doc}, upsert=False)
-                return True
-            else:
-                # no changes needed
-                pass
-        return False
+        self.bulk_op.find({
+            "$or": [
+                {'guid': guid},
+                {'guid': {"$exists": False}, 'latE6': latE6, 'lngE6': lngE6}
+            ]
+        }).upsert().update({
+            "$set": new_doc,
+            "$push": {
+                "_history": new_doc
+            }
+        })
 
     def publish_guid_index(self):
         self.portals.aggregate([
@@ -138,7 +137,4 @@ class PortalIndexHelper(object):
         return index_json
 
 
-class MongoPortalIndex(LazyObject):
-    def _setup(self):
-        self._wrapped = PortalIndexHelper()
-
+MongoPortalIndex = PortalIndexHelper()

@@ -48,6 +48,7 @@ class Command(LabelCommand):
                 'timestamp': discover_date,
             }
             doc['_ref'] = PortalIndexHelper.sha_hash(**doc)
+            doc['_history'] = [doc.copy()]
             chunk.append(doc)
             cur_chunk_size = len(chunk)
             if cur_chunk_size >= max_chunk_size:
