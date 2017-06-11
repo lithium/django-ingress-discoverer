@@ -7,6 +7,7 @@ import pymongo
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.functional import LazyObject
+from pykml.factory import KML_ElementMaker
 
 
 class MongoHelper(object):
@@ -136,5 +137,34 @@ class PortalIndexHelper(object):
             return self._index_json
         return index_json
 
+    def intel_href(self, doc):
+        return u"https://www.ingress.com/intel?ll={latlng}&z=17".format(latlng=self.latlngstr(doc))
+
+    def latlngstr(self, doc):
+        return u"{lat:.6f},{lng:.6f}".format(lat=doc['latE6']/1e6, lng=doc['lngE6']/1e6)
+
+    def generate_kml(self, dataset_name='portals', *args, **kwargs):
+        kml_folder = KML_ElementMaker.Folder(
+            KML_ElementMaker.name(dataset_name),
+        )
+        cursor = self.portals.find(*args, **kwargs)
+        for portalinfo in cursor:
+            placemark = KML_ElementMaker.Placemark(
+                KML_ElementMaker.name(portalinfo.get('name')),
+                KML_ElementMaker.description(self.intel_href(portalinfo)),
+                KML_ElementMaker.Point(
+                    KML_ElementMaker.coordinates(self.latlngstr(portalinfo))
+                )
+            )
+            kml_folder.append(placemark)
+
+        doc = KML_ElementMaker.kml(
+            KML_ElementMaker.Document(
+                kml_folder
+            )
+        )
+        return doc
 
 MongoPortalIndex = PortalIndexHelper()
+
+

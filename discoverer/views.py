@@ -1,14 +1,8 @@
-import json
-
 import os
-import datetime
-from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.sites.models import Site
-from django.core.cache import cache
-from django.db.models import Count
 from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -20,8 +14,8 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
-from discoverer.models import PortalIndex, PortalInfo, KmlOutput, DiscovererUser
-from discoverer.portalindex.helpers import PortalIndexHelper, MongoPortalIndex
+from discoverer.models import KmlOutput
+from discoverer.portalindex.helpers import MongoPortalIndex
 
 
 @method_decorator(login_required, name='dispatch')
@@ -33,14 +27,14 @@ class Home(TemplateView):
         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex') and \
                                    self.request.user.has_perm('discoverer.read_iitcplugin')
         context['site'] = Site.objects.get_current(request=self.request)
-        if self.request.user.has_perm('discoverer.read_own_portalinfo'):
-            own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
-            context.update(dict(
-                total_you_discovered=own_portals.count(),
-                portals=own_portals[:10]
-            ))
-        if self.request.user.has_perm('discoverer.read_portalinfo'):
-            context['total_discovered'] = PortalInfo.objects.all().count()
+        # if self.request.user.has_perm('discoverer.read_own_portalinfo'):
+        #     own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
+        #     context.update(dict(
+        #         total_you_discovered=own_portals.count(),
+        #         portals=own_portals[:10]
+        #     ))
+        # if self.request.user.has_perm('discoverer.read_portalinfo'):
+        #     context['total_discovered'] = PortalInfo.objects.all().count()
         return context
 
 
@@ -48,25 +42,25 @@ class Home(TemplateView):
 class Leaderboard(TemplateView):
     template_name = 'discoverer/leaderboard.html'
 
-    def build_leaderboard(self, queryset):
-        created_by_counts = queryset.values('created_by').order_by().annotate(Count('created_by'))
-        users = []
-        for row in created_by_counts:
-            try:
-                user = DiscovererUser.objects.get(pk=row.get('created_by'))
-            except DiscovererUser.DoesNotExist:
-                pass
-            else:
-                users.append([user, row.get('created_by__count')])
-        return reversed(sorted(users, lambda a, b: cmp(a[1], b[1])))
+    # def build_leaderboard(self, queryset):
+    #     created_by_counts = queryset.values('created_by').order_by().annotate(Count('created_by'))
+    #     users = []
+    #     for row in created_by_counts:
+    #         try:
+    #             user = DiscovererUser.objects.get(pk=row.get('created_by'))
+    #         except DiscovererUser.DoesNotExist:
+    #             pass
+    #         else:
+    #             users.append([user, row.get('created_by__count')])
+    #     return reversed(sorted(users, lambda a, b: cmp(a[1], b[1])))
 
     def get_context_data(self, **kwargs):
         context = super(Leaderboard, self).get_context_data(**kwargs)
         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
-        context['leaderboard'] = self.build_leaderboard(PortalInfo.objects.all())
-        context['recent_leaderboard'] = self.build_leaderboard(PortalInfo.objects.filter(
-            created_at__gte=timezone.now() - datetime.timedelta(days=1)
-        ))
+        # context['leaderboard'] = self.build_leaderboard(PortalInfo.objects.all())
+        # context['recent_leaderboard'] = self.build_leaderboard(PortalInfo.objects.filter(
+        #     created_at__gte=timezone.now() - datetime.timedelta(days=1)
+        # ))
         return context
 
 
