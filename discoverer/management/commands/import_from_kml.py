@@ -28,7 +28,7 @@ class Command(LabelCommand):
             doc = {
                 'latE6': latE6,
                 'lngE6': lngE6,
-                'name': unicode(p.name).strip(),
+                'name': unicode(p.name),
                 'timestamp': discover_date,
             }
             doc['_ref'] = PortalIndexHelper.sha_hash(**doc)

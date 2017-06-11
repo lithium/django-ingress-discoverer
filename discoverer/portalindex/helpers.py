@@ -65,8 +65,7 @@ class PortalIndexHelper(object):
 
         if portal is None:
             portal = self.portals.find_one({'latE6': latE6, 'lngE6': lngE6})
-
-        if 'guid' in portal and portal['guid'] != guid:
+        elif 'guid' in portal and portal['guid'] != guid:
             raise ValueError("guid mismatch!")
 
         if timestamp is None:

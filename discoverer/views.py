@@ -16,6 +16,7 @@ from django.views.decorators.http import last_modified, etag
 from django.views.generic import TemplateView
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
+from rest_framework.status import HTTP_401_UNAUTHORIZED
 from rest_framework.views import APIView
 
 from discoverer.models import PortalIndex, PortalInfo, KmlOutput, DiscovererUser
@@ -87,7 +88,8 @@ class ServeIndex(PermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         mpi = MongoPortalIndex()
         response = HttpResponse(mpi.cached_guid_index_json())
-        response['Cache-Control'] = 'public,max-age=1000'
+        response['Cache-Control'] = 'public,max-age=60'
+        response['Content-Type'] = 'application/json'
         return response
 
 
@@ -118,73 +120,32 @@ class DownloadPlugin(PermissionRequiredMixin, View):
         return response
 
 
-def exists_in_index(latlng):
-    _idx = cache.get("latlng_index")
-    if _idx is None:
-        idx = PortalIndex.objects.get_active()
-        _idx = {}
-        known_obj = json.loads(idx.indexfile.file.read())
-        for ll in known_obj.get('k', []):
-            _idx["{:.6f},{:.6f}".format(ll[1], ll[0])] = True
-        cache.set("latlng_index", _idx)
-    key = "{},{}".format(*latlng)
-    return key in _idx
-
-
 class PortalInfoSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    latlng = serializers.ListField(child=serializers.DecimalField(max_digits=9, decimal_places=6), min_length=2, max_length=2, source='llarray')
-    created_by = serializers.CharField(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
+    name = serializers.CharField(trim_whitespace=False)
+    guid = serializers.CharField()
+    latE6 = serializers.IntegerField()
+    lngE6 = serializers.IntegerField()
+    updated = serializers.BooleanField(read_only=True)
 
     def create(self, validated_data):
-        latlng = validated_data.get('llarray')
-        if exists_in_index(latlng):
-            return None
-        portalinfo, created = PortalInfo.objects.get_or_create(
-            lat=latlng[0],
-            lng=latlng[1],
-            defaults=dict(
-                name=validated_data.get('name'),
-                created_by=validated_data.get('created_by')
-            )
-        )
-        return portalinfo
-
-
-class HasCreatePortalInfoPermission(permissions.DjangoModelPermissions):
-    perms_map = {
-        'GET': ['discoverer.read_own_portalinfo'],
-        'POST': ['discoverer.add_portalinfo'],
-    }
+        validated_data.pop('created_by', None)
+        mpi = MongoPortalIndex()
+        validated_data['updated'] = mpi.update_portal(**validated_data)
+        return validated_data
 
 
 class SubmitPortalInfos(APIView):
-    queryset = PortalInfo.objects.all()
-    permission_classes = (
-        permissions.IsAuthenticated,
-        HasCreatePortalInfoPermission
-    )
-
-    def get(self, request, *args, **kwargs):
-        if request.user.has_perm('discoverer.read_portalinfo'):
-            portals = PortalInfo.objects.all()
-        elif request.user.has_perm('discoverer.read_own_portalinfo'):
-            portals = PortalInfo.objects.filter(created_by=request.user)
-        else:
-            raise Http404
-
-        idx = {
-            'k': [[p.lng, p.lat] for p in portals]
-        }
-        return Response(idx)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
+        if not request.user.has_perm('discoverer.add_portalinfo'):
+            return Response(status=HTTP_401_UNAUTHORIZED)
+
         serializer = PortalInfoSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save(
-            created_by=request.user,
-        )
+        serializer.save()
+        if any(map(lambda p: p.get('updated', False), serializer.data)):
+            MongoPortalIndex().publish_guid_index()
         return Response("ok")
 
 
