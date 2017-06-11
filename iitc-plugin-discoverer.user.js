@@ -160,7 +160,7 @@ function wrapper(plugin_info) {
         };
         doc._ref = _portal_ref(doc)
 
-        window.plugin.portalDiscoverer.checkInPortal(latlng, doc);
+        window.plugin.portalDiscoverer.checkInPortal(doc);
     };
 
 
@@ -170,7 +170,7 @@ function wrapper(plugin_info) {
         }
 
         if (!(doc.guid in window.plugin.portalDiscoverer.portalIndex) ||
-             (doc._ref != window.plugin.portalDiscoverer.portalIndex[doc.guid]._ref)) {
+             (doc._ref != window.plugin.portalDiscoverer.portalIndex[doc.guid])) {
             window.plugin.portalDiscoverer.newPortals[doc.guid] = doc
         }
 
@@ -194,6 +194,7 @@ function wrapper(plugin_info) {
             return;
         }
 
+
         if (window.plugin.portalDiscoverer.sending_portal_lock) {
             return;
         }
@@ -216,6 +217,9 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.fetchIndex = function() {
         if (window.plugin.portalDiscoverer.base_url) {
+            if (!window.plugin.portalDiscoverer.portalIndex) {
+                window.plugin.portalDiscoverer.portalIndex = {}
+            }
             _xhr('GET', window.plugin.portalDiscoverer.base_url + "pidx", window.plugin.portalDiscoverer.handleKnownIndex);
         }
     };
