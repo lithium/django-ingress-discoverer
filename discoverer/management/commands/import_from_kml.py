@@ -46,6 +46,7 @@ class Command(LabelCommand):
                 'lngE6': lngE6,
                 'name': unicode(p.name),
                 'timestamp': discover_date,
+                'reporter': 'scragnoth',
             }
             doc['_ref'] = PortalIndexHelper.sha_hash(**doc)
             doc['_history'] = [doc.copy()]
@@ -55,14 +56,18 @@ class Command(LabelCommand):
                 print("insert_many={}".format(cur_chunk_size))
 
                 try:
-                    collection.insert_many(chunk)
-                    inserted += cur_chunk_size
+                    result = collection.insert_many(chunk, ordered=False)
+                    inserted += len(result.inserted_ids)
                 except BulkWriteError as e:
-                    print(e.details)
-                    raise
+                    pass # latlng duplicates
+                    # print(e.details)
+                    # raise
                 chunk = []
         if len(chunk) > 0:
-            collection.insert_many(chunk)
-            inserted += len(chunk)
+            try:
+                result = collection.insert_many(chunk, ordered=False)
+                inserted += len(result.inserted_ids)
+            except BulkWriteError as e:
+                pass # latlng duplicates
         print("Done. inserted {}".format(inserted))
 

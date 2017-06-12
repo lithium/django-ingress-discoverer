@@ -135,7 +135,7 @@ class SubmitPortalInfos(APIView):
         # TODO: filter request.data where _ref matches index
         serializer = PortalInfoSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(created_by=request.user)
         try:
             results = MongoPortalIndex.bulk_op_execute()
         except BulkWriteError as e:
