@@ -71,7 +71,7 @@ class PortalIndexHelper(object):
             self._bulk_op = None
             return result
 
-    def update_portal(self, latE6, lngE6, name, guid, timestamp=None, created_by=None):
+    def update_portal(self, latE6, lngE6, name, guid, timestamp=None, created_by=None, region=None):
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -85,6 +85,8 @@ class PortalIndexHelper(object):
         new_doc['_ref'] = self.sha_hash(**new_doc)
         if created_by:
             new_doc['reporter'] = created_by.username
+        if region:
+            new_doc['region'] = region
         # portal = None
 
         self.bulk_op.find({
@@ -149,6 +151,8 @@ class PortalIndexHelper(object):
         kml_schema = KML_ElementMaker.Schema(
             KML_ElementMaker.SimpleField(name="LAT", type="float"),
             KML_ElementMaker.SimpleField(name="LNG", type="float"),
+            KML_ElementMaker.SimpleField(name="REGION", type="string"),
+            KML_ElementMaker.SimpleField(name="GUID", type="string"),
             name="ingressportal",
             id="ip"
         )
@@ -157,6 +161,15 @@ class PortalIndexHelper(object):
         )
         cursor = self.portals.find(*args, **kwargs)
         for portalinfo in cursor:
+            schema_data = [
+                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['latE6']/1e6), name="LAT"),
+                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['lngE6']/1e6), name="LNG"),
+            ]
+            if 'region' in portalinfo:
+                schema_data.append(KML_ElementMaker.SimpleData(portalinfo['region'], name="REGION"))
+            if 'guid' in portalinfo:
+                schema_data.append(KML_ElementMaker.SimpleData(portalinfo['guid'], name="GUID"))
+
             placemark = KML_ElementMaker.Placemark(
                 KML_ElementMaker.name(portalinfo.get('name')),
                 KML_ElementMaker.description(self.intel_href(portalinfo)),
@@ -164,13 +177,7 @@ class PortalIndexHelper(object):
                     KML_ElementMaker.coordinates(self.latlngstr(portalinfo['lngE6'], portalinfo['latE6']))
                 ),
                 KML_ElementMaker.TimeStamp(KML_ElementMaker.when(portalinfo['timestamp'].strftime('%Y-%m-%d'))),
-                KML_ElementMaker.ExtendedData(
-                    KML_ElementMaker.SchemaData(
-                        KML_ElementMaker.SimpleData(portalinfo['latE6']/1e6, name="LAT"),
-                        KML_ElementMaker.SimpleData(portalinfo['lngE6']/1e6, name="LNG"),
-                        schemaUrl="#ip"
-                    )
-                )
+                KML_ElementMaker.ExtendedData(KML_ElementMaker.SchemaData(*schema_data, schemaUrl="#ip"))
             )
             kml_folder.append(placemark)
 

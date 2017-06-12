@@ -119,6 +119,7 @@ class PortalInfoSerializer(serializers.Serializer):
     guid = serializers.CharField()
     latE6 = serializers.IntegerField()
     lngE6 = serializers.IntegerField()
+    region = serializers.CharField()
 
     def create(self, validated_data):
         MongoPortalIndex.update_portal(**validated_data)

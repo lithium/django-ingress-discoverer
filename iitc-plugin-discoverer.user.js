@@ -133,6 +133,7 @@ function wrapper(plugin_info) {
         var guid = data.portal.options.guid
         var latE6 = data.portal.options.data.latE6;
         var lngE6 = data.portal.options.data.lngE6;
+        var region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6))
 
         if (!(latE6 && lngE6 && name && guid)) {
             return;
@@ -142,7 +143,8 @@ function wrapper(plugin_info) {
             latE6: latE6,
             lngE6: lngE6,
             name: name,
-            guid: guid
+            guid: guid,
+            region: region
         };
         doc._ref = _portal_ref(doc)
 
