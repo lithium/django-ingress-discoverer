@@ -40,6 +40,9 @@ class ActiveModelManager(models.Manager):
 
 
 class DiscovererUser(AuditedModel, AbstractUser):
+    discovered_count = models.PositiveIntegerField(default=0)
+    updated_count = models.PositiveIntegerField(default=0)
+
     @property
     def has_kml_download_perm(self):
         return self.has_perm('discoverer.read_kmloutput')

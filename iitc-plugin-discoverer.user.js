@@ -121,11 +121,13 @@ function wrapper(plugin_info) {
         var ll = [data.portal._latlng.lat, data.portal._latlng.lng];
 
         if (!_latlng_in_bounds(ll, window.plugin.portalDiscoverer.filter_bounds)) {
+//            console.log("discoverer addPortal out of bounds")
             return;
         }
 
         if (!window.plugin.portalDiscoverer.portalIndex) {
             window.plugin.portalDiscoverer.portalQueue.push(data);
+//            console.log("discoverer addPortal pushing to queue")
             return;
         }
 
@@ -134,6 +136,8 @@ function wrapper(plugin_info) {
         var latE6 = data.portal.options.data.latE6;
         var lngE6 = data.portal.options.data.lngE6;
         var region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6))
+
+//        console.log("discoverer addPortal ", latE6, lngE6, name, guid, region);
 
         if (!(latE6 && lngE6 && name && guid)) {
             return;
@@ -154,19 +158,19 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.checkInPortal = function(doc) {
         if (doc.guid in window.plugin.portalDiscoverer.newPortals) {
-            console.log("discoverer checkInPortal already in newPortals")
+//            console.log("discoverer checkInPortal already in newPortals")
             return;
         }
 
         if (!(doc.guid in window.plugin.portalDiscoverer.portalIndex)) {
-            console.log("discoverer checkInPortal new portal");
+//            console.log("discoverer checkInPortal new portal");
             window.plugin.portalDiscoverer.newPortals[doc.guid] = doc
         }
         else if (doc._ref != window.plugin.portalDiscoverer.portalIndex[doc.guid]) {
-            console.log("discoverer checkInPortal ref mismatch!", doc, window.plugin.portalDiscoverer.portalIndex[doc.guid])
+//            console.log("discoverer checkInPortal ref mismatch!", doc, window.plugin.portalDiscoverer.portalIndex[doc.guid])
             window.plugin.portalDiscoverer.newPortals[doc.guid] = doc
         } else {
-            console.log("discoverer checkInPortal skipping portal");
+//            console.log("discoverer checkInPortal skipping portal");
         }
 
         window.plugin.portalDiscoverer.sendNewPortals();

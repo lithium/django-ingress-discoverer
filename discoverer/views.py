@@ -141,7 +141,14 @@ class SubmitPortalInfos(APIView):
             results = MongoPortalIndex.bulk_op_execute()
         except BulkWriteError as e:
             return Response(e.details, status=HTTP_400_BAD_REQUEST)
-        if results.get('nInserted', 0) + results.get('nModified', 0) + results.get('nRemoved', 0) + results.get('nUpserted', 0) > 0:
+
+        discovered = results.get('nInserted', 0) + results.get('nUpserted', 0)
+        updated = results.get('nModified', 0)
+
+        if discovered + updated > 0:
+            request.user.discovered_count += discovered
+            request.user.updated_count += updated
+            request.user.save()
             MongoPortalIndex.publish_guid_index()
         return Response("ok")
 

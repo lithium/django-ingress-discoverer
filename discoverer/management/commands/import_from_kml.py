@@ -1,4 +1,6 @@
 import datetime
+import os
+
 from django.core.management.base import LabelCommand
 from pykml import parser
 from pymongo.errors import BulkWriteError
@@ -17,6 +19,7 @@ class Command(LabelCommand):
             doc = parser.parse(kmlfile)
 
         discover_date = datetime.datetime(year=2016, month=7, day=16)
+        reporter = os.path.basename(label)
 
         mongo = MongoHelper()
         collection = mongo.db.portals
@@ -48,7 +51,7 @@ class Command(LabelCommand):
                 },
                 'name': unicode(p.name),
                 'timestamp': discover_date,
-                'reporter': 'scragnoth',
+                'reporter': reporter,
             }
             doc['_ref'] = PortalIndexHelper.sha_hash(doc)
             doc['_history'] = [doc.copy()]
