@@ -54,8 +54,13 @@ class PortalIndexHelper(object):
         return self._portals
 
     @classmethod
-    def sha_hash(cls, latE6, lngE6, name, **kwargs):
-        key = u"{lat}|{lng}|{name}|{guid}".format(lat=latE6, lng=lngE6, name=name, guid=kwargs.get('guid', "null"))
+    def sha_hash(cls, doc):
+        key = u"{lat}|{lng}|{name}|{guid}".format(
+            lat=int(doc['location']['coordinates'][1]*1e6),
+            lng=int(doc['location']['coordinates'][0]*1e6),
+            name=doc['name'],
+            guid=doc.get('guid', "null")
+        )
         hash = sha1(key.encode('utf-8')).hexdigest()
         return hash
 
@@ -76,13 +81,15 @@ class PortalIndexHelper(object):
             timestamp = timezone.now()
 
         new_doc = {
-            'latE6': latE6,
-            'lngE6': lngE6,
+            'location': {
+                "type": "Point",
+                "coordinates": [lngE6/1e6, latE6/1e6]
+            },
             'name': name,
             'guid': guid,
             'timestamp': timestamp,
         }
-        new_doc['_ref'] = self.sha_hash(**new_doc)
+        new_doc['_ref'] = self.sha_hash(new_doc)
         if created_by:
             new_doc['reporter'] = created_by.username
         if region:
@@ -92,7 +99,7 @@ class PortalIndexHelper(object):
         self.bulk_op.find({
             "$or": [
                 {'guid': guid},
-                {'guid': {"$exists": False}, 'latE6': latE6, 'lngE6': lngE6}
+                {'guid': {"$exists": False}, 'location.coordinates': [lngE6/1e6, latE6/1e6]}
             ]
         }).upsert().update({
             "$set": new_doc,

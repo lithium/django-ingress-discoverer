@@ -42,13 +42,15 @@ class Command(LabelCommand):
             #     print("In bounds!")
 
             doc = {
-                'latE6': latE6,
-                'lngE6': lngE6,
+                'location': {
+                    "type": "Point",
+                    "coordinates": [lngE6/1e6, latE6/1e6]
+                },
                 'name': unicode(p.name),
                 'timestamp': discover_date,
                 'reporter': 'scragnoth',
             }
-            doc['_ref'] = PortalIndexHelper.sha_hash(**doc)
+            doc['_ref'] = PortalIndexHelper.sha_hash(doc)
             doc['_history'] = [doc.copy()]
             chunk.append(doc)
             cur_chunk_size = len(chunk)
