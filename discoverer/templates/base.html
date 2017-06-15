@@ -48,6 +48,7 @@
     {% endblock %}
 <nav>
     <ul>
+{% comment %}
         {% if user.has_kml_download_perm %}
         <li><a target="_blank" href="{% url 'download_kml' %}">Download .kml</a></li>
         {% endif %}
@@ -61,6 +62,7 @@
             <li><a href="{% url 'leaderboard' %}">Hi-Score</a></li>
             {% endif %}
         {% endif %}
+{% endcomment %}
 
         {% if user.is_staff %}
         <li><a target="_blank" href="{% url 'admin:index' %}">Staff</a></li>

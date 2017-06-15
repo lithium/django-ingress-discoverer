@@ -6,8 +6,15 @@
 {% if is_authorized %}
 
 <p>
-    Discovered By You: <span>{{ request.user.discovered_count }}</span><br>
-    Updated By You: <span>{{ request.user.updated_count }}</span><br>
+    Discovered By You: <span>{{ request.user.discovered_count|intcomma }}</span><br>
+    Updated By You: <span>{{ request.user.updated_count|intcomma }}</span><br>
+</p>
+
+<p>
+    Total Portals: <span>{{ portal_index_count|intcomma }}</span><br>
+    {% if latest_kml %}
+    KML File: <span><a href="{% url "download_kml" %}">{{ latest_kml.name }}.kml</a> [{{ latest_kml.created_at }}]</span><br>
+    {% endif %}
 </p>
 
 {% else %}

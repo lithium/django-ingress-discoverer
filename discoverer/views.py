@@ -29,6 +29,8 @@ class Home(TemplateView):
         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex') and \
                                    self.request.user.has_perm('discoverer.read_iitcplugin')
         context['site'] = Site.objects.get_current(request=self.request)
+        context['latest_kml'] = KmlOutput.objects.get_current(rebuild_if_needed=False)
+        context['portal_index_count'] = MongoPortalIndex.portal_index_count
         # if self.request.user.has_perm('discoverer.read_own_portalinfo'):
         #     own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
         #     context.update(dict(
@@ -95,19 +97,19 @@ class DownloadKml(PermissionRequiredMixin, View):
     raise_exception = True
 
     def get(self, *args, **kwargs):
-        if KmlOutput.objects.is_dirty():
-            if not KmlOutput.objects.is_generate_kml_task_running():
-                task_id = KmlOutput.objects.send_generate_kml_task()
-                if task_id:
-                    try:
-                        AsyncResult(task_id).get(timeout=10)
-                    except TimeoutError:
-                        return HttpResponse("Generating kml...")
-                    else:
-                        # result finished in time, return immediately
-                        pass
-            else:
-                return HttpResponse("Generating kml...")
+        # if KmlOutput.objects.is_dirty():
+        #     if not KmlOutput.objects.is_generate_kml_task_running():
+        #         task_id = KmlOutput.objects.send_generate_kml_task()
+        #         if task_id:
+        #             try:
+        #                 AsyncResult(task_id).get(timeout=10)
+        #             except TimeoutError:
+        #                 return HttpResponse("Generating kml...")
+        #             else:
+        #                 # result finished in time, return immediately
+        #                 pass
+        #     else:
+        #         return HttpResponse("Generating kml...")
 
         kml_output = KmlOutput.objects.get_current(rebuild_if_needed=False)
         if kml_output is None:

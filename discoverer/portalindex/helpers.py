@@ -34,6 +34,7 @@ class PortalIndexHelper(object):
     portal_index_cache_key = 'portalindexhelper_portal_index'
     portal_index_timestamp_cache_key = 'portalindexhelper_portal_index_timestamp'
     portal_index_etag_cache_key = 'portalindexhelper_portal_index_etag'
+    portal_index_count_cache_key = 'portalindexhelper_portal_index_count'
     guid_index_collection_name = "portals_guid_ref_map"
 
     def __init__(self):
@@ -121,6 +122,15 @@ class PortalIndexHelper(object):
         cache.set(self.portal_index_cache_key, self._index_json, timeout=None)
         cache.set(self.portal_index_timestamp_cache_key, timezone.now(), timeout=None)
         cache.set(self.portal_index_etag_cache_key, str(uuid.uuid4()), timeout=None)
+        cache.set(self.portal_index_count_cache_key, self.portals.find().count(), timeout=None)
+
+    @property
+    def portal_index_count(self):
+        count = cache.get(self.portal_index_count_cache_key)
+        if not count:
+            self.publish()
+            count = cache.get(self.portal_index_count_cache_key)
+        return count
 
     @property
     def portal_index_last_modified(self):
