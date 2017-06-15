@@ -30,6 +30,7 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.base_url = undefined;
     window.plugin.portalDiscoverer.how_many_new_portals = 1;
     window.plugin.portalDiscoverer.sending_portal_lock = false;
+    window.plugin.portalDiscoverer.discovered_count = 0;
 
     window.plugin.portalDiscoverer.filter_bounds = [
         [46.887566, -125.208619],
@@ -47,7 +48,8 @@ function wrapper(plugin_info) {
         addHook('portalAdded', window.plugin.portalDiscoverer.handlePortalAdded);
 
         $('head').append('<style>' +
-            'iframe { width: 675px; background: white; border: none; }' +
+            'iframe { width: 475px; background: white; border: none; }' +
+            'p.stats span { padding: 0 0.5em; }' +
             '</style>')
 
         $('#toolbox').append('<a onclick="window.plugin.portalDiscoverer.displayLoginDialog()">Discoverer</a>');
@@ -76,17 +78,22 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.displayLoginDialog = function() {
         var html = $('<div/>');
         if (window.plugin.portalDiscoverer.base_url) {
-            var refreshidxbtn = $('<button style="margin-left: 1em">Refresh Index</button>')
-            refreshidxbtn.click(function() {
-                window.plugin.portalDiscoverer.portalIndex = undefined;
-                window.plugin.portalDiscoverer.fetchIndex();
-            })
-            html.append($('<p>Known Index: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</p>').append(refreshidxbtn))
-            html.append('<iframe style="width: 670px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
+            var stats = $('<p class="stats"></p>')
+            stats.append($('<span>Index size: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</span>'));
+            stats.append($('<span>Discovered this session: ' + window.plugin.portalDiscoverer.discovered_count + '</span>'));
+            stats.append($('<span>Queued to send: ' + Object.keys(window.plugin.portalDiscoverer.newPortals).length + '</span>'));
+
+            html.append(stats)
+            html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
+
             html.append($('<button>Clear Server</button>').click(function() {
                 window.plugin.portalDiscoverer.base_url = undefined;
                 localStorage.removeItem("base_url")
-            }))
+            }));
+            html.append($('<button style="margin-left: 1em">Refresh Index</button>').click(function() {
+                window.plugin.portalDiscoverer.portalIndex = undefined;
+                window.plugin.portalDiscoverer.fetchIndex();
+            }));
         } else {
             var server_input = $('<input id="discoverer_server_url" type="text"/>');
             var sbut = $('<button>Save</button>');
@@ -99,7 +106,7 @@ function wrapper(plugin_info) {
                 localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
 
                 html.empty()
-                html.append('<iframe style="width: 670px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
+                html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
             })
             html = $('<div/>')
             html.append(server_input)
@@ -111,7 +118,7 @@ function wrapper(plugin_info) {
             'dialogClass': "ui-dialog-discoverer",
             title: "Discoverer",
             id: "discoverer",
-            width: 700
+            width: 500
         });
     };
 
@@ -189,6 +196,9 @@ function wrapper(plugin_info) {
             window.plugin.portalDiscoverer.sending_portal_lock = true;
 
             var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
+
+            window.plugin.portalDiscoverer.discovered_count += portalsToSend.length;
+
             window.plugin.portalDiscoverer.newPortals = {};
             _xhr('POST', window.plugin.portalDiscoverer.base_url + "spi", function() {
                 window.plugin.portalDiscoverer.sending_portal_lock = false;
