@@ -52,6 +52,96 @@ class DiscovererUser(AuditedModel, AbstractUser):
         return self.has_perm('discoverer.read_portalinfo')
 
 
+class PortalIndex(AuditedModel):
+    is_active = models.BooleanField(default=False)
+    name = models.CharField(max_length=254, unique=True)
+    description = models.CharField(max_length=254, blank=True, null=True)
+    indexfile = models.FileField(upload_to='uploads/indexes')
+
+    objects = ActiveModelManager()
+
+    class Meta:
+        ordering = ('name',)
+        permissions = (
+            ("read_portalindex", "Allowed to fetch the portal index"),
+            ("read_iitcplugin", "Allowed download IITC plugin"),
+        )
+
+    def __unicode__(self):
+        return self.name
+
+
+class PortalInfoManager(models.Manager):
+    def get_kmlfile(self, queryset=None, dataset_name="discoverered portals"):
+        if queryset is None:
+            queryset = self.all()
+        kml_folder = KML_ElementMaker.Folder(
+            KML_ElementMaker.name(dataset_name),
+        )
+        for portalinfo in queryset:
+            placemark = KML_ElementMaker.Placemark(
+                KML_ElementMaker.name(portalinfo.name),
+                KML_ElementMaker.description(portalinfo.intel_href),
+                KML_ElementMaker.Point(
+                    KML_ElementMaker.coordinates("{},{}".format(portalinfo.lng, portalinfo.lat))
+                )
+            )
+            kml_folder.append(placemark)
+
+        doc = KML_ElementMaker.kml(
+            KML_ElementMaker.Document(
+                kml_folder
+            )
+        )
+        kmlfile = ContentFile(etree.tostring(doc), name="{}.kml".format(dataset_name))
+        return kmlfile
+
+
+class PortalInfo(AuditedModel):
+    lat = models.DecimalField(max_digits=9, decimal_places=6)
+    lng = models.DecimalField(max_digits=9, decimal_places=6)
+    name = models.CharField(max_length=254)
+    guid = models.CharField(max_length=254, blank=True, null=True, db_index=True)
+    stored_county = models.CharField(max_length=254, blank=True, null=True, db_index=True)
+
+    objects = PortalInfoManager()
+
+    class Meta:
+        ordering = ('name',)
+        unique_together = ('lat','lng')
+        permissions = (
+            ("read_own_portalinfo", "Allowed to see the list of portals you've discovered"),
+            ("read_portalinfo", "Allowed to see the list of all discovered portals"),
+        )
+
+    def __unicode__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.stored_county:
+            self.stored_county = geolookup('county', self.latlng)
+        return super(PortalInfo, self).save(*args, **kwargs)
+
+    @property
+    def county(self):
+        if not self.stored_county:
+            self.stored_county = geolookup('county', self.latlng)
+            self.save()
+        return self.stored_county
+
+    @property
+    def latlng(self):
+        return u"{},{}".format(self.lat, self.lng)
+
+    @property
+    def intel_href(self):
+        return u"https://www.ingress.com/intel?ll={lat},{lng}&z=17".format(lat=self.lat, lng=self.lng)
+
+    @property
+    def llarray(self):
+        return [self.lat, self.lng]
+
+
 class KmlOutputManager(models.Manager):
     def get_latest(self):
         return self.all().order_by('-created_at').first()
