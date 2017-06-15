@@ -1,4 +1,6 @@
 import os
+from celery.exceptions import TimeoutError
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -93,7 +95,21 @@ class DownloadKml(PermissionRequiredMixin, View):
     raise_exception = True
 
     def get(self, *args, **kwargs):
-        kml_output = KmlOutput.objects.get_current()
+        if KmlOutput.objects.is_dirty():
+            if not KmlOutput.objects.is_generate_kml_task_running():
+                task_id = KmlOutput.objects.send_generate_kml_task()
+                if task_id:
+                    try:
+                        AsyncResult(task_id).get(timeout=10)
+                    except TimeoutError:
+                        return HttpResponse("Generating kml...")
+                    else:
+                        # result finished in time, return immediately
+                        pass
+            else:
+                return HttpResponse("Generating kml...")
+
+        kml_output = KmlOutput.objects.get_current(rebuild_if_needed=False)
         if kml_output is None:
             raise Http404
         response = StreamingHttpResponse(kml_output.kmlfile)

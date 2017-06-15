@@ -1,3 +1,4 @@
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.cache import cache
@@ -143,22 +144,44 @@ class PortalInfo(AuditedModel):
 
 
 class KmlOutputManager(models.Manager):
+    def is_dirty(self):
+        latest = self.get_latest()
+        cur_tag = self.get_current_index_tag()
+        return latest is None or cur_tag != latest.portal_index_etag
+
+    def is_generate_kml_task_running(self, timeout=0.1):
+        task_id = cache.get("KmlOutput:generate_latest_kml:task_id")
+        if task_id is not None:
+            result = AsyncResult(task_id)
+            return not result.ready()
+        return False
+
+    def send_generate_kml_task(self):
+        from discoverer.tasks import generate_latest_kml
+
+        if not self.is_generate_kml_task_running():
+            result = generate_latest_kml.apply_async()
+            cache.set("KmlOutput:generate_latest_kml:task_id", result.task_id)
+            return result.task_id
+
     def get_latest(self):
         return self.all().order_by('-created_at').first()
 
-    def get_current(self):
-        latest = self.get_latest()
-
-        # get current index etag
+    def get_current_index_tag(self):
         cur_tag = cache.get(MongoPortalIndex.portal_index_etag_cache_key)
         if cur_tag is None:
             MongoPortalIndex.publish()
             cur_tag = cache.get(MongoPortalIndex.portal_index_etag_cache_key)
+        return cur_tag
 
-        if latest is None or cur_tag != latest.portal_index_etag:
+    def get_current(self, rebuild_if_needed=True):
+        latest = self.get_latest()
+
+        cur_tag = self.get_current_index_tag()
+
+        if rebuild_if_needed and (latest is None or cur_tag != latest.portal_index_etag):
             now = timezone.now()
             dataset_name = "OPS-{latest}".format(
-                # previous="071916",
                 latest=now.strftime("%m%d%y")
             )
             doc = MongoPortalIndex.generate_kml(dataset_name=dataset_name)
