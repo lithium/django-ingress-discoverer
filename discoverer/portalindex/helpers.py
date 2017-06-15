@@ -149,7 +149,8 @@ class PortalIndexHelper(object):
         return index_json
 
     def intel_href(self, doc):
-        return u"https://www.ingress.com/intel?ll={latlng}&z=17".format(latlng=self.latlngstr(doc['latE6'], doc['lngE6']))
+        return u"https://www.ingress.com/intel?ll={:.6f},{:.6f}&z=17".format(doc['location']['coordinates'][1],
+                                                                             doc['location']['coordinates'][1])
 
     def latlngstr(self, latE6, lngE6):
         return u"{lat:.6f},{lng:.6f}".format(lat=latE6/1e6, lng=lngE6/1e6)
@@ -169,8 +170,8 @@ class PortalIndexHelper(object):
         cursor = self.portals.find(*args, **kwargs)
         for portalinfo in cursor:
             schema_data = [
-                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['latE6']/1e6), name="LAT"),
-                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['lngE6']/1e6), name="LNG"),
+                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['location']['coordinates'][0]), name="LNG"),
+                KML_ElementMaker.SimpleData("{:.6f}".format(portalinfo['location']['coordinates'][1]), name="LAT"),
             ]
             if 'region' in portalinfo:
                 schema_data.append(KML_ElementMaker.SimpleData(portalinfo['region'], name="REGION"))
@@ -181,7 +182,7 @@ class PortalIndexHelper(object):
                 KML_ElementMaker.name(portalinfo.get('name')),
                 KML_ElementMaker.description(self.intel_href(portalinfo)),
                 KML_ElementMaker.Point(
-                    KML_ElementMaker.coordinates(self.latlngstr(portalinfo['lngE6'], portalinfo['latE6']))
+                    KML_ElementMaker.coordinates("{:.6f},{:.6f}".format(*portalinfo['location']['coordinates']))
                 ),
                 KML_ElementMaker.TimeStamp(KML_ElementMaker.when(portalinfo['timestamp'].strftime('%Y-%m-%d'))),
                 KML_ElementMaker.ExtendedData(KML_ElementMaker.SchemaData(*schema_data, schemaUrl="#ip"))
