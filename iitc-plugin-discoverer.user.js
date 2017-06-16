@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        2.0.0
+// @version        2.0.1
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -32,6 +32,7 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.how_many_new_portals = 1;
     window.plugin.portalDiscoverer.sending_portal_lock = false;
     window.plugin.portalDiscoverer.discovered_count = 0;
+    window.plugin.portalDiscoverer.highlightedPortals = {};
 
     window.plugin.portalDiscoverer.filter_bounds = [
         [46.887566, -125.208619],
@@ -40,7 +41,7 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.setup = function() {
 
-        var base_url = localStorage.getItem("base_url")
+        var base_url = localStorage.getItem("base_url");
         if (base_url) {
             window.plugin.portalDiscoverer.base_url = base_url;
             window.plugin.portalDiscoverer.fetchIndex();
@@ -51,11 +52,11 @@ function wrapper(plugin_info) {
         $('head').append('<style>' +
             'iframe { width: 475px; background: white; border: none; }' +
             'p.stats span { padding: 0 0.5em; }' +
-            '</style>')
+            '</style>');
 
         $('#toolbox').append('<a onclick="window.plugin.portalDiscoverer.displayLoginDialog()">Discoverer</a>');
 
-        window.addPortalHighlighter('Discovered Portals', window.plugin.portalDiscoverer.highlight)
+        window.addPortalHighlighter('Discovered Portals', window.plugin.portalDiscoverer.highlight);
     };
 
     window.plugin.portalDiscoverer.highlight = function(data) {
@@ -65,13 +66,22 @@ function wrapper(plugin_info) {
         if (!_latlng_in_bounds([data.portal._latlng.lat, data.portal._latlng.lng], window.plugin.portalDiscoverer.filter_bounds)) {
             return;
         }
-//        console.log("discoverer highlight", guid, window.plugin.portalDiscoverer.portalIndex[guid])
+//        console.log("discoverer highlight", guid, window.plugin.portalDiscoverer.portalIndex[guid], data.portal);
 
         if (window.plugin.portalDiscoverer.portalIndex && !(guid in window.plugin.portalDiscoverer.portalIndex)) {
+
+            window.plugin.portalDiscoverer.highlightedPortals[guid] = {
+                portal: data.portal,
+                originalStyle: {
+                    fillColor: data.portal.options.fillColor,
+                    fillOpacity: data.portal.options.fillOpacity
+                }
+            };
+
             data.portal.setStyle({
                 fillColor: "red",
                 fillOpacity: 1.0
-            })
+            });
         }
 
     };
@@ -79,17 +89,17 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.displayLoginDialog = function() {
         var html = $('<div/>');
         if (window.plugin.portalDiscoverer.base_url) {
-            var stats = $('<p class="stats"></p>')
+            var stats = $('<p class="stats"></p>');
             stats.append($('<span>Index size: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</span>'));
             stats.append($('<span>Discovered this session: ' + window.plugin.portalDiscoverer.discovered_count + '</span>'));
             stats.append($('<span>Queued to send: ' + Object.keys(window.plugin.portalDiscoverer.newPortals).length + '</span>'));
 
-            html.append(stats)
+            html.append(stats);
             html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
 
             html.append($('<button>Clear Server</button>').click(function() {
                 window.plugin.portalDiscoverer.base_url = undefined;
-                localStorage.removeItem("base_url")
+                localStorage.removeItem("base_url");
             }));
             html.append($('<button style="margin-left: 1em">Refresh Index</button>').click(function() {
                 window.plugin.portalDiscoverer.portalIndex = undefined;
@@ -101,17 +111,17 @@ function wrapper(plugin_info) {
             sbut.click(function() {
                 var url = server_input.val();
                 if (!url.endsWith('/')) {
-                    url += '/'
+                    url += '/';
                 }
                 window.plugin.portalDiscoverer.base_url = url;
                 localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
 
-                html.empty()
+                html.empty();
                 html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
-            })
-            html = $('<div/>')
-            html.append(server_input)
-            html.append(sbut)
+            });
+            html = $('<div/>');
+            html.append(server_input);
+            html.append(sbut);
         }
 
         dialog({
@@ -140,10 +150,10 @@ function wrapper(plugin_info) {
         }
 
         var name = data.portal.options.data.title;
-        var guid = data.portal.options.guid
+        var guid = data.portal.options.guid;
         var latE6 = data.portal.options.data.latE6;
         var lngE6 = data.portal.options.data.lngE6;
-        var region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6))
+        var region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6));
 
 //        console.log("discoverer addPortal ", latE6, lngE6, name, guid, region);
 
@@ -158,7 +168,7 @@ function wrapper(plugin_info) {
             guid: guid,
             region: region
         };
-        doc._ref = _portal_ref(doc)
+        doc._ref = _portal_ref(doc);
 
         window.plugin.portalDiscoverer.checkInPortal(doc);
     };
@@ -172,11 +182,11 @@ function wrapper(plugin_info) {
 
         if (!(doc.guid in window.plugin.portalDiscoverer.portalIndex)) {
 //            console.log("discoverer checkInPortal new portal");
-            window.plugin.portalDiscoverer.newPortals[doc.guid] = doc
+            window.plugin.portalDiscoverer.newPortals[doc.guid] = doc;
         }
         else if (doc._ref != window.plugin.portalDiscoverer.portalIndex[doc.guid]) {
 //            console.log("discoverer checkInPortal ref mismatch!", doc, window.plugin.portalDiscoverer.portalIndex[doc.guid])
-            window.plugin.portalDiscoverer.newPortals[doc.guid] = doc
+            window.plugin.portalDiscoverer.newPortals[doc.guid] = doc;
         } else {
 //            console.log("discoverer checkInPortal skipping portal");
         }
@@ -196,9 +206,12 @@ function wrapper(plugin_info) {
         if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) >= window.plugin.portalDiscoverer.how_many_new_portals) {
             window.plugin.portalDiscoverer.sending_portal_lock = true;
 
+            var copiedNewPortals = window.plugin.portalDiscoverer.newPortals;
+            var guidsSent = Object.keys(window.plugin.portalDiscoverer.newPortals);
             var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
 
             window.plugin.portalDiscoverer.discovered_count += portalsToSend.length;
+
 
             window.plugin.portalDiscoverer.newPortals = {};
             _xhr('POST', window.plugin.portalDiscoverer.base_url + "spi", function() {
@@ -206,6 +219,27 @@ function wrapper(plugin_info) {
                 if (Object.keys(window.plugin.portalDiscoverer.newPortals).length > 0) {
                     window.plugin.portalDiscoverer.sendNewPortals();
                 }
+
+//                console.log("discoverer highlight spi post callback", guidsSent)
+                for (var i=0; i < guidsSent.length; i++) {
+                    var guid = guidsSent[i];
+                    if (guid in window.plugin.portalDiscoverer.highlightedPortals) {
+                        var highlightInfo = window.plugin.portalDiscoverer.highlightedPortals[guid];
+//                        console.log('discoverer highlightInfo', highlightInfo);
+//                        highlightInfo.portal.setStyle(highlightInfo.originalStyle)
+                        highlightInfo.portal.setStyle({
+                            fillColor: "magenta",
+                            fillOpacity: 1.0
+                        })
+                        delete window.plugin.portalDiscoverer.highlightedPortals[guid];
+                    }
+
+                    var _ref = copiedNewPortals[guid]._ref
+//                    console.log("discoverer adding to index", guid, _ref)
+                    window.plugin.portalDiscoverer.portalIndex[guid] = _ref;
+                }
+
+
             }, JSON.stringify(portalsToSend));
         }
     };
@@ -220,7 +254,7 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.handleKnownIndex = function(data) {
         if (!window.plugin.portalDiscoverer.portalIndex) {
-            window.plugin.portalDiscoverer.portalIndex = {}
+            window.plugin.portalDiscoverer.portalIndex = {};
         }
         var n = Object.keys(data).length;
         for (var guid in data) {
@@ -253,7 +287,7 @@ function wrapper(plugin_info) {
                 if (this.getResponseHeader('Content-Type') == "application/json") {
                     cb(JSON.parse(req.responseText));
                 } else {
-                    cb(req.response)
+                    cb(req.response);
                 }
             } else {
             }
@@ -273,8 +307,8 @@ function wrapper(plugin_info) {
 
     var _rusha = new Rusha();
     var _portal_ref = function(doc) {
-        return _rusha.digest(doc.latE6+"|"+doc.lngE6+"|"+doc.name+"|"+doc.guid)
-    }
+        return _rusha.digest(doc.latE6+"|"+doc.lngE6+"|"+doc.name+"|"+doc.guid);
+    };
 
 
     var setup = window.plugin.portalDiscoverer.setup;
