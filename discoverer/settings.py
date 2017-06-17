@@ -185,8 +185,12 @@ db_from_env = dj_database_url.config(conn_max_age=500)
 DATABASES['default'].update(db_from_env)
 DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 
-GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH')
-GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH')
+if 'GEOS_LIBRARY_PATH' in os.environ:
+    GEOS_LIBRARY_PATH = "{}/libgeos_c.so".format(os.environ.get('GEOS_LIBRARY_PATH'))
+if 'GDAL_LIBRARY_PATH' in os.environ:
+    GDAL_LIBRARY_PATH = "{}/libgdal.so".format(os.environ.get('GDAL_LIBRARY_PATH'))
+if 'PROJ4_LIBRARY_PATH' in os.environ:
+    PROJ4_LIBRARY_PATH = "{}/libproj.so".format(os.environ.get('PROJ4_LIBRARY_PATH'))
 
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
