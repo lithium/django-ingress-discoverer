@@ -118,10 +118,12 @@ if 'MEMCACHEDCLOUD_SERVERS' in os.environ:
         'default': {
             'BACKEND': 'django_bmemcached.memcached.BMemcached',
             'LOCATION': os.environ.get('MEMCACHEDCLOUD_SERVERS').split(','),
+            'VERSION': 2,
             'OPTIONS': {
                 'username': os.environ.get('MEMCACHEDCLOUD_USERNAME'),
                 'password': os.environ.get('MEMCACHEDCLOUD_PASSWORD')
             }
+
         }
     }
 
