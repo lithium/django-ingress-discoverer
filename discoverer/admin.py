@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
+from django.contrib.gis.admin import OSMGeoAdmin
 
-from discoverer.models import DiscovererUser, KmlOutput
+from discoverer.models import DiscovererUser, KmlOutput, SearchRegion
 
 
 class PermissionAdmin(admin.ModelAdmin):
@@ -44,3 +45,14 @@ admin.site.register(DiscovererUser, DiscovererUserAdmin)
 class KmlOutputAdmin(AuditedModelAdmin):
     list_display = ('name','created_at')
 admin.site.register(KmlOutput, KmlOutputAdmin)
+
+
+class SearchRegionAdmin(OSMGeoAdmin, AuditedModelAdmin):
+    list_display = ('name', 'is_active',)
+    readonly_fields = ('created_by','updated_by')
+    map_width = 800
+    map_height = 600
+    default_zoom = 1
+    # default_lon = -98.839226
+    # default_lat = 40.001021
+admin.site.register(SearchRegion, SearchRegionAdmin)

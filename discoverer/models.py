@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.base import ContentFile
 from django.db import models, transaction
+from django.contrib.gis.db import models as gismodels
 from django.utils import timezone
 from lxml import etree
 
@@ -208,3 +209,21 @@ class KmlOutput(AuditedModel):
         permissions = (
             ("read_kmloutput", "Allowed to download the kml"),
         )
+
+
+class SearchRegionManager(gismodels.GeoManager, ActiveModelManager):
+    def get_active_coordinates(self):
+        active = self.get_active()
+        if active:
+            return active.geom.coords[0]
+
+
+class SearchRegion(AuditedModel):
+    is_active = models.BooleanField(default=False)
+    name = models.CharField(max_length=254)
+    geom = gismodels.PolygonField()
+
+    objects = SearchRegionManager()
+
+    class Meta:
+        ordering = ('name',)

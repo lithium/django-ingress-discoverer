@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        2.0.1
+// @version        2.0.2
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -34,10 +34,8 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.discovered_count = 0;
     window.plugin.portalDiscoverer.highlightedPortals = {};
 
-    window.plugin.portalDiscoverer.filter_bounds = [
-        [46.887566, -125.208619],
-        [40.258825, -115.094343],
-    ];
+    window.plugin.portalDiscoverer.highlightQueue = [];
+    window.plugin.portalDiscoverer.filter_bounds = undefined;
 
     window.plugin.portalDiscoverer.setup = function() {
 
@@ -60,15 +58,22 @@ function wrapper(plugin_info) {
     };
 
     window.plugin.portalDiscoverer.highlight = function(data) {
-        var ll = _llstring([data.portal._latlng.lat, data.portal._latlng.lng]);
+        var latlng = [data.portal._latlng.lat, data.portal._latlng.lng]
+        var ll = _llstring(latlng);
         var guid = data.portal.options.guid;
 
-        if (!_latlng_in_bounds([data.portal._latlng.lat, data.portal._latlng.lng], window.plugin.portalDiscoverer.filter_bounds)) {
+        if (!window.plugin.portalDiscoverer.portalIndex) {
+            window.plugin.portalDiscoverer.highlightQueue.push(data);
             return;
         }
-//        console.log("discoverer highlight", guid, window.plugin.portalDiscoverer.portalIndex[guid], data.portal);
 
-        if (window.plugin.portalDiscoverer.portalIndex && !(guid in window.plugin.portalDiscoverer.portalIndex)) {
+        if (window.plugin.portalDiscoverer.filter_bounds &&
+            !_point_in_polygon([data.portal._latlng.lng, data.portal._latlng.lat], window.plugin.portalDiscoverer.filter_bounds)) {
+//            console.log("discoverer highlight skipping out of bounds", window.plugin.portalDiscoverer.filter_bounds )
+            return;
+        }
+
+        if (!(guid in window.plugin.portalDiscoverer.portalIndex)) {
 
             window.plugin.portalDiscoverer.highlightedPortals[guid] = {
                 portal: data.portal,
@@ -83,8 +88,9 @@ function wrapper(plugin_info) {
                 fillOpacity: 1.0
             });
         }
+    }
 
-    };
+
 
     window.plugin.portalDiscoverer.displayLoginDialog = function() {
         var html = $('<div/>');
@@ -138,14 +144,16 @@ function wrapper(plugin_info) {
     window.plugin.portalDiscoverer.handlePortalAdded = function(data) {
         var ll = [data.portal._latlng.lat, data.portal._latlng.lng];
 
-        if (!_latlng_in_bounds(ll, window.plugin.portalDiscoverer.filter_bounds)) {
-//            console.log("discoverer addPortal out of bounds")
-            return;
-        }
 
         if (!window.plugin.portalDiscoverer.portalIndex) {
             window.plugin.portalDiscoverer.portalQueue.push(data);
 //            console.log("discoverer addPortal pushing to queue")
+            return;
+        }
+
+        if (window.plugin.portalDiscoverer.filter_bounds &&
+            !_point_in_polygon([data.portal._latlng.lng, data.portal._latlng.lat], window.plugin.portalDiscoverer.filter_bounds)) {
+//            console.log("discoverer addPortal out of bounds")
             return;
         }
 
@@ -256,20 +264,34 @@ function wrapper(plugin_info) {
         if (!window.plugin.portalDiscoverer.portalIndex) {
             window.plugin.portalDiscoverer.portalIndex = {};
         }
-        var n = Object.keys(data).length;
-        for (var guid in data) {
-            if (!data.hasOwnProperty(guid)) continue;
-            window.plugin.portalDiscoverer.portalIndex[guid] = data[guid];
+        var known;
+        if (data.k) {
+//            console.log("discoverer new style index", data.r)
+            window.plugin.portalDiscoverer.filter_bounds = data.r;
+            known = data.k;
+        } else {
+            known = data;
+        }
+        var n = Object.keys(known).length;
+        for (var guid in known) {
+            if (!known.hasOwnProperty(guid)) continue;
+            window.plugin.portalDiscoverer.portalIndex[guid] = known[guid];
         }
 
         window.plugin.portalDiscoverer.processPortalQueue();
     };
 
     window.plugin.portalDiscoverer.processPortalQueue = function() {
+        var i;
         for (i = 0; i < window.plugin.portalDiscoverer.portalQueue.length; i++) {
             window.plugin.portalDiscoverer.handlePortalAdded(window.plugin.portalDiscoverer.portalQueue[i]);
         }
         window.plugin.portalDiscoverer.portalQueue = [];
+
+        for (i = 0; i < window.plugin.portalDiscoverer.highlightQueue.length; i++) {
+            window.plugin.portalDiscoverer.highlight(window.plugin.portalDiscoverer.highlightQueue[i]);
+        }
+        window.plugin.portalDiscoverer.highlightQueue = [];
     };
 
 
@@ -309,6 +331,27 @@ function wrapper(plugin_info) {
     var _portal_ref = function(doc) {
         return _rusha.digest(doc.latE6+"|"+doc.lngE6+"|"+doc.name+"|"+doc.guid);
     };
+
+
+    var _point_in_polygon = function (point, vs) {
+        // https://github.com/substack/point-in-polygon
+        // ray-casting algorithm based on
+        // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+        var x = point[0], y = point[1];
+
+        var inside = false;
+        for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+            var xi = vs[i][0], yi = vs[i][1];
+            var xj = vs[j][0], yj = vs[j][1];
+
+            var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+    };
+
 
 
     var setup = window.plugin.portalDiscoverer.setup;

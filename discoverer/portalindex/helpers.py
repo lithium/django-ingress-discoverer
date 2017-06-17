@@ -10,6 +10,7 @@ from django.utils.functional import LazyObject
 from pykml.factory import KML_ElementMaker
 
 
+
 class MongoHelper(object):
     def __init__(self, mongo_uri=None, mongo_db_name=None):
         self.mongo_uri = mongo_uri if mongo_uri else os.environ.get('MONGODB_URI').strip()
@@ -118,7 +119,11 @@ class PortalIndexHelper(object):
         self.publish()
 
     def publish(self):
-        self._index_json = json.dumps(self.guid_index())
+        from discoverer.models import SearchRegion
+        self._index_json = json.dumps({
+            'k': self.guid_index(),
+            'r': SearchRegion.objects.get_active_coordinates()
+        })
         cache.set(self.portal_index_cache_key, self._index_json, timeout=None)
         cache.set(self.portal_index_timestamp_cache_key, timezone.now(), timeout=None)
         cache.set(self.portal_index_etag_cache_key, str(uuid.uuid4()), timeout=None)
