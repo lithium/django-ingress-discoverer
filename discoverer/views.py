@@ -18,6 +18,8 @@ from rest_framework.views import APIView
 
 from discoverer.models import KmlOutput
 from discoverer.portalindex.helpers import MongoPortalIndex
+from discoverer.utils import start_celery_dyno
+from discoverer.tasks import publish_guid_index
 
 
 @method_decorator(login_required, name='dispatch')
@@ -167,7 +169,10 @@ class SubmitPortalInfos(APIView):
             request.user.discovered_count += discovered
             request.user.updated_count += updated
             request.user.save()
-            MongoPortalIndex.publish_guid_index()
+
+            publish_guid_index.apply_async(kwargs={})
+            start_celery_dyno()
+
         return Response("ok")
 
 

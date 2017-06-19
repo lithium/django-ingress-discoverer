@@ -14,6 +14,7 @@ pymongo==3.4.0
 django-bmemcached==0.2.3
 celery==4.0.2
 redis==2.10.5
+heroku3==3.3.0
 
 #django-allauth==0.32.0
 git+https://github.com/coffindragger/django-allauth.git@0.33.1-coffindragger

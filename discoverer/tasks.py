@@ -4,6 +4,7 @@ import requests
 from discoverer import celery_app
 from discoverer.celeryapp import close_worker_if_no_tasks_scheduled
 from discoverer.models import KmlOutput
+from discoverer.portalindex.helpers import MongoPortalIndex
 
 
 @celery_app.task(bind=True)
@@ -14,6 +15,16 @@ def generate_latest_kml(self):
         'kmlfile': kml_output.kmlfile.name,
         'etag': kml_output.portal_index_etag,
     }
+
+
+@celery_app.task(bind=True)
+def publish_guid_index(self):
+    try:
+        MongoPortalIndex.publish_guid_index()
+    except Exception as e:
+        raise
+    finally:
+        close_worker_if_no_tasks_scheduled(worker_hostname=self.request.hostname)
 
 
 @celery_app.task(bind=True)
