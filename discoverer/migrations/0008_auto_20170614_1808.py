@@ -12,19 +12,14 @@ from discoverer.portalindex.helpers import MongoPortalIndex, PortalIndexHelper
 def copy_portalinfo_into_mongodb(apps, schema_editor):
     PortalInfo = apps.get_model('discoverer', 'PortalInfo')
     for pi in PortalInfo.objects.all():
-        doc = {
-            'location': {
-                "type": "Point",
-                "coordinates": [float(pi.lng), float(pi.lat)]
-            },
-            'name': pi.name,
-            'timestamp': pi.created_at,
-            'reporter': pi.created_by.username,
-        }
-        doc['_ref'] = PortalIndexHelper.sha_hash(doc)
-        doc['_history'] = [doc.copy()]
-
-        MongoPortalIndex.bulk_op.insert(doc)
+        MongoPortalIndex.update_portal(
+            latE6=int(float(pi.lat)*1e6),
+            lngE6=int(float(pi.lng)*1e6),
+            name=pi.name,
+            guid=None,
+            timestamp=pi.created_at,
+            created_by=pi.created_by,
+            region=None)
 
     try:
         results = MongoPortalIndex.bulk_op_execute()

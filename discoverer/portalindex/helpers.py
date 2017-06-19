@@ -78,7 +78,7 @@ class PortalIndexHelper(object):
             self._bulk_op = None
             return result
 
-    def update_portal(self, latE6, lngE6, name, guid, timestamp=None, created_by=None, region=None):
+    def update_portal(self, latE6, lngE6, name, guid=None, timestamp=None, created_by=None, region=None):
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -88,21 +88,22 @@ class PortalIndexHelper(object):
                 "coordinates": [lngE6/1e6, latE6/1e6]
             },
             'name': name,
-            'guid': guid,
             'timestamp': timestamp,
         }
+
+        or_operations = [{'guid': {"$exists": False}, 'location.coordinates': [lngE6/1e6, latE6/1e6]}]
+        if guid is not None:
+            or_operations.insert(0, {'guid': guid})
+            new_doc['guid'] = guid
+
         new_doc['_ref'] = self.sha_hash(new_doc)
         if created_by:
             new_doc['reporter'] = created_by.username
         if region:
             new_doc['region'] = region
-        # portal = None
 
         self.bulk_op.find({
-            "$or": [
-                {'guid': guid},
-                {'guid': {"$exists": False}, 'location.coordinates': [lngE6/1e6, latE6/1e6]}
-            ]
+            "$or": or_operations
         }).upsert().update({
             "$set": new_doc,
             "$push": {
