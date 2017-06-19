@@ -3,6 +3,7 @@ import os
 from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'discoverer.settings')
 
 app = Celery('discoverer')
@@ -24,6 +25,8 @@ def close_worker_if_no_tasks_scheduled(worker_hostname):
     reserved = inspect.reserved().get(worker_hostname, [])
     print("active:{} scheduled:{} reserved:{}".format(len(active), len(scheduled), len(reserved)))
     if len(scheduled)+len(reserved) < 1:
-        app.control.broadcast('shutdown', destination=(worker_hostname,))
+        from discoverer.utils import kill_celery_dyno
+        kill_celery_dyno()
+        # app.control.broadcast('shutdown', destination=(worker_hostname,))
         return True
     return False
