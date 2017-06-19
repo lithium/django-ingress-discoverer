@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        2.0.3
+// @version        2.0.4
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -96,7 +96,7 @@ function wrapper(plugin_info) {
         var html = $('<div/>');
         if (window.plugin.portalDiscoverer.base_url) {
             var stats = $('<p class="stats"></p>');
-            stats.append($('<span>Index: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</span>'));
+            stats.append($('<span>Index: ' + (window.plugin.portalDiscoverer.portalIndex ? Object.keys(window.plugin.portalDiscoverer.portalIndex).length : "-") + '</span>'));
             stats.append($('<span>Discovered: ' + window.plugin.portalDiscoverer.discovered_count + '</span>'));
             stats.append($('<span>Queued: ' + Object.keys(window.plugin.portalDiscoverer.newPortals).length + '</span>'));
 

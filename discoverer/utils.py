@@ -40,16 +40,15 @@ def heroku_app(api_key=None, app_name=None):
             raise ValueError("no HEROKU_APP_NAME found")
 
     heroku_conn = heroku3.from_key(api_key)
-    heroku_app = heroku_conn.apps().get(app_name, None)
-    if not heroku_app:
-        raise ValueError("invalid HEROKU_APP")
+    heroku_app = heroku_conn.apps()[app_name]
     return heroku_app
 
 
 def start_celery_dyno(*args, **kwargs):
     dyno = active_celery_dyno(*args, **kwargs)
     if dyno is None:
-        dyno = heroku_app.run_command_detached('celery worker --app=discoverer.celery_app -l info --concurrency 1')
+        app = heroku_app(*args, **kwargs)
+        dyno = app.run_command_detached('celery worker --app=discoverer.celery_app -l info --concurrency 1')
         cache.set(_heroku_dyno_cache_key, dyno.id)
 
 
