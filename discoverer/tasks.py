@@ -28,6 +28,22 @@ def publish_guid_index(self):
 
 
 @celery_app.task(bind=True)
+def notify_channel_of_new_portals(self, new_doc_ids, bot_id=None):
+    try:
+        cursor = MongoPortalIndex.portals.find({"_id": {"$in": new_doc_ids}})
+        for portal in cursor:
+            bot_message = "{reporter} discovered {name} in {region} - {intel_link}".format(
+                intel_link=MongoPortalIndex.intel_href(portal),
+                **portal
+            )
+            send_bot_message.apply_async(kwargs=dict(text=bot_message, bot_id=bot_id))
+    except Exception as e:
+        raise
+    finally:
+        close_worker_if_no_tasks_scheduled(worker_hostname=self.request.hostname)
+
+
+@celery_app.task(bind=True)
 def send_bot_message(self, text, bot_id=None):
     try:
         if bot_id is None:

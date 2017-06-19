@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from discoverer.models import KmlOutput
 from discoverer.portalindex.helpers import MongoPortalIndex
 from discoverer.utils import start_celery_dyno
-from discoverer.tasks import publish_guid_index
+from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals
 
 
 @method_decorator(login_required, name='dispatch')
@@ -171,6 +171,9 @@ class SubmitPortalInfos(APIView):
             request.user.save()
 
             publish_guid_index.apply_async(kwargs={})
+            if 'GROUPME_BOT_ID' in os.environ:
+                upserted_ids = list(map(lambda r: r._id, results.get('upserted', [])))
+                notify_channel_of_new_portals.apply_async(kwargs=dict(new_doc_ids=upserted_ids))
             start_celery_dyno()
 
         return Response("ok")
