@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        2.0.2
+// @version        2.0.3
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -48,7 +48,7 @@ function wrapper(plugin_info) {
         addHook('portalAdded', window.plugin.portalDiscoverer.handlePortalAdded);
 
         $('head').append('<style>' +
-            'iframe { width: 475px; background: white; border: none; }' +
+            'iframe { width: "33em"; background: white; border: none; }' +
             'p.stats span { padding: 0 0.5em; }' +
             '</style>');
 
@@ -96,12 +96,12 @@ function wrapper(plugin_info) {
         var html = $('<div/>');
         if (window.plugin.portalDiscoverer.base_url) {
             var stats = $('<p class="stats"></p>');
-            stats.append($('<span>Index size: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</span>'));
-            stats.append($('<span>Discovered this session: ' + window.plugin.portalDiscoverer.discovered_count + '</span>'));
-            stats.append($('<span>Queued to send: ' + Object.keys(window.plugin.portalDiscoverer.newPortals).length + '</span>'));
+            stats.append($('<span>Index: ' + Object.keys(window.plugin.portalDiscoverer.portalIndex).length + '</span>'));
+            stats.append($('<span>Discovered: ' + window.plugin.portalDiscoverer.discovered_count + '</span>'));
+            stats.append($('<span>Queued: ' + Object.keys(window.plugin.portalDiscoverer.newPortals).length + '</span>'));
 
             html.append(stats);
-            html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
+            html.append('<iframe style="width: 33em" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
 
             html.append($('<button>Clear Server</button>').click(function() {
                 window.plugin.portalDiscoverer.base_url = undefined;
@@ -123,7 +123,7 @@ function wrapper(plugin_info) {
                 localStorage.setItem("base_url", window.plugin.portalDiscoverer.base_url);
 
                 html.empty();
-                html.append('<iframe style="width: 470px" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
+                html.append('<iframe style="width: 33em" src="' + window.plugin.portalDiscoverer.base_url + '"></iframe>');
             });
             html = $('<div/>');
             html.append(server_input);
@@ -135,7 +135,7 @@ function wrapper(plugin_info) {
             'dialogClass': "ui-dialog-discoverer",
             title: "Discoverer",
             id: "discoverer",
-            width: 500
+            width: "35em"
         });
     };
 
@@ -161,7 +161,11 @@ function wrapper(plugin_info) {
         var guid = data.portal.options.guid;
         var latE6 = data.portal.options.data.latE6;
         var lngE6 = data.portal.options.data.lngE6;
-        var region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6));
+        var region;
+        if (window.plugin.regions) {
+            region = window.plugin.regions.regionName(S2.S2Cell.FromLatLng(data.portal._latlng, 6));
+        }
+
 
 //        console.log("discoverer addPortal ", latE6, lngE6, name, guid, region);
 
@@ -174,8 +178,10 @@ function wrapper(plugin_info) {
             lngE6: lngE6,
             name: name,
             guid: guid,
-            region: region
         };
+        if (region) {
+            doc.region = region;
+        }
         doc._ref = _portal_ref(doc);
 
         window.plugin.portalDiscoverer.checkInPortal(doc);
@@ -214,14 +220,18 @@ function wrapper(plugin_info) {
         if ((Object.keys(window.plugin.portalDiscoverer.newPortals).length) >= window.plugin.portalDiscoverer.how_many_new_portals) {
             window.plugin.portalDiscoverer.sending_portal_lock = true;
 
+            var how_many_sending = Math.min(100, Object.keys(window.plugin.portalDiscoverer.newPortals).length);
+
             var copiedNewPortals = window.plugin.portalDiscoverer.newPortals;
-            var guidsSent = Object.keys(window.plugin.portalDiscoverer.newPortals);
-            var portalsToSend = Object.values(window.plugin.portalDiscoverer.newPortals);
-
+            var guidsSent = Object.keys(window.plugin.portalDiscoverer.newPortals).slice(0, how_many_sending);
+            var portalsToSend = []
+            for (var i=0; i < how_many_sending; i++) {
+                portalsToSend.push(copiedNewPortals[guidsSent[i]]);
+                delete window.plugin.portalDiscoverer.newPortals[guidsSent[i]];
+            }
             window.plugin.portalDiscoverer.discovered_count += portalsToSend.length;
+//            console.log("discoverer sending new Portals ", portalsToSend.length)
 
-
-            window.plugin.portalDiscoverer.newPortals = {};
             _xhr('POST', window.plugin.portalDiscoverer.base_url + "spi", function() {
                 window.plugin.portalDiscoverer.sending_portal_lock = false;
                 if (Object.keys(window.plugin.portalDiscoverer.newPortals).length > 0) {
@@ -229,7 +239,7 @@ function wrapper(plugin_info) {
                 }
 
 //                console.log("discoverer highlight spi post callback", guidsSent)
-                for (var i=0; i < guidsSent.length; i++) {
+                for (i=0; i < guidsSent.length; i++) {
                     var guid = guidsSent[i];
                     if (guid in window.plugin.portalDiscoverer.highlightedPortals) {
                         var highlightInfo = window.plugin.portalDiscoverer.highlightedPortals[guid];
@@ -283,6 +293,7 @@ function wrapper(plugin_info) {
 
     window.plugin.portalDiscoverer.processPortalQueue = function() {
         var i;
+
         for (i = 0; i < window.plugin.portalDiscoverer.portalQueue.length; i++) {
             window.plugin.portalDiscoverer.handlePortalAdded(window.plugin.portalDiscoverer.portalQueue[i]);
         }
