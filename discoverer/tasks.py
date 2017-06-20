@@ -1,5 +1,6 @@
 import os
 import requests
+from bson import ObjectId
 
 from discoverer import celery_app
 from discoverer.celeryapp import close_worker_if_no_tasks_scheduled
@@ -29,7 +30,7 @@ def publish_guid_index(self):
 
 @celery_app.task(bind=True)
 def notify_channel_of_new_portals(self, new_doc_ids, bot_id=None):
-    cursor = MongoPortalIndex.portals.find({"_id": {"$in": new_doc_ids}})
+    cursor = MongoPortalIndex.portals.find({"_id": {"$in": [ObjectId(_id) for _id in new_doc_ids]}})
     for portal in cursor:
         bot_message = "{reporter} discovered {name} in {region} - {intel_link}".format(
             intel_link=MongoPortalIndex.intel_href(portal),

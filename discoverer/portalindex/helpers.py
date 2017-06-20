@@ -166,7 +166,7 @@ class PortalIndexHelper(object):
 
     def intel_href(self, doc):
         return u"https://www.ingress.com/intel?ll={:.6f},{:.6f}&z=17".format(doc['location']['coordinates'][1],
-                                                                             doc['location']['coordinates'][1])
+                                                                             doc['location']['coordinates'][0])
 
     def latlngstr(self, latE6, lngE6):
         return u"{lat:.6f},{lng:.6f}".format(lat=latE6/1e6, lng=lngE6/1e6)
