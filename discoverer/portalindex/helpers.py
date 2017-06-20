@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.utils.functional import LazyObject
 from pykml.factory import KML_ElementMaker
-
+from pymongo.errors import InvalidOperation
 
 
 class MongoHelper(object):
@@ -74,9 +74,13 @@ class PortalIndexHelper(object):
 
     def bulk_op_execute(self):
         if self._bulk_op is not None:
-            result = self._bulk_op.execute()
-            self._bulk_op = None
-            return result
+            try:
+                result = self._bulk_op.execute()
+                return result
+            except InvalidOperation:
+                pass
+            finally:
+                self._bulk_op = None
 
     def update_portal(self, latE6, lngE6, name, guid=None, timestamp=None, created_by=None, region=None):
         if timestamp is None:
