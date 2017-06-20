@@ -18,14 +18,18 @@ _heroku_dyno_cache_key = "HEROKU_CELERY_WORKER_DYNO_ID"
 
 
 def active_celery_dyno(*args, **kwargs):
+    app = heroku_app(*args, **kwargs)
     dyno_id = cache.get(_heroku_dyno_cache_key)
     if dyno_id is not None:
-        app = heroku_app(*args, **kwargs)
         try:
             dyno = app.dynos()[dyno_id]
             return dyno
         except KeyError:
             pass
+    else:
+        workers = filter(lambda d: d.command.startswith('celery worker'), app.dynos())
+        if len(workers) > 0:
+            return workers[0]
 
 
 def heroku_app(api_key=None, app_name=None):
