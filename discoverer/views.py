@@ -171,8 +171,8 @@ class SubmitPortalInfos(APIView):
             request.user.save()
 
             publish_guid_index.apply_async(kwargs={})
-            if 'GROUPME_BOT_ID' in os.environ:
-                upserted_ids = list(map(lambda r: str(r.get('_id')), results.get('upserted', [])))
+            upserted_ids = list(map(lambda r: str(r.get('_id')), results.get('upserted', [])))
+            if 'GROUPME_BOT_ID' in os.environ and len(upserted_ids) > 0:
                 notify_channel_of_new_portals.apply_async(kwargs=dict(new_doc_ids=upserted_ids))
             start_celery_dyno()
 

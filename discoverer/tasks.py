@@ -31,6 +31,11 @@ def publish_guid_index(self):
 @celery_app.task(bind=True)
 def notify_channel_of_new_portals(self, new_doc_ids, bot_id=None):
     cursor = MongoPortalIndex.portals.find({"_id": {"$in": [ObjectId(_id) for _id in new_doc_ids]}})
+    if cursor.count() < 1:
+        print("no new portals to send to bot!")
+        close_worker_if_no_tasks_scheduled(worker_hostname=self.request.hostname)
+        return
+
     for portal in cursor:
         bot_message = "{reporter} discovered {name} in {region} - {intel_link}".format(
             intel_link=MongoPortalIndex.intel_href(portal),
