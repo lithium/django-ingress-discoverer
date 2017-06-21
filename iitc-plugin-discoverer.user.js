@@ -2,7 +2,7 @@
 // @id             iitc-plugin-portal-discoverer@nobody889
 // @name           IITC plugin: Portal Discoverer
 // @category       Cache
-// @version        2.0.4
+// @version        2.0.5
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @description    [iitc-2017-01-08-021732] discover portals
 // @include        https://*.ingress.com/intel*
@@ -222,18 +222,21 @@ function wrapper(plugin_info) {
 
             var how_many_sending = Math.min(100, Object.keys(window.plugin.portalDiscoverer.newPortals).length);
 
-            var copiedNewPortals = window.plugin.portalDiscoverer.newPortals;
+            // var copiedNewPortals = window.plugin.portalDiscoverer.newPortals;
             var guidsSent = Object.keys(window.plugin.portalDiscoverer.newPortals).slice(0, how_many_sending);
-            var portalsToSend = []
+            var portalsToSend = {}
             for (var i=0; i < how_many_sending; i++) {
-                portalsToSend.push(copiedNewPortals[guidsSent[i]]);
-                delete window.plugin.portalDiscoverer.newPortals[guidsSent[i]];
+                var guid = guidsSent[i];
+                portalsToSend[guid] = window.plugin.portalDiscoverer.newPortals[guid];
+                // portalsToSend.push(copiedNewPortals[guidsSent[i]]);
+                delete window.plugin.portalDiscoverer.newPortals[guid];
             }
-            window.plugin.portalDiscoverer.discovered_count += portalsToSend.length;
+            window.plugin.portalDiscoverer.discovered_count += how_many_sending;
 //            console.log("discoverer sending new Portals ", portalsToSend.length)
 
             _xhr('POST', window.plugin.portalDiscoverer.base_url + "spi", function() {
                 window.plugin.portalDiscoverer.sending_portal_lock = false;
+
                 if (Object.keys(window.plugin.portalDiscoverer.newPortals).length > 0) {
                     window.plugin.portalDiscoverer.sendNewPortals();
                 }
@@ -252,13 +255,13 @@ function wrapper(plugin_info) {
                         delete window.plugin.portalDiscoverer.highlightedPortals[guid];
                     }
 
-                    var _ref = copiedNewPortals[guid]._ref
+                    // var _ref = copiedNewPortals[guid]._ref
 //                    console.log("discoverer adding to index", guid, _ref)
-                    window.plugin.portalDiscoverer.portalIndex[guid] = _ref;
+                    window.plugin.portalDiscoverer.portalIndex[guid] = portalsToSend[guid];
                 }
 
 
-            }, JSON.stringify(portalsToSend));
+            }, JSON.stringify(Object.values(portalsToSend)));
         }
     };
 
