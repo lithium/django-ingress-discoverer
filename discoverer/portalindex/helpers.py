@@ -198,13 +198,15 @@ class PortalIndexHelper(object):
             if 'guid' in portalinfo:
                 schema_data.append(KML_ElementMaker.SimpleData(portalinfo['guid'], name="GUID"))
 
+            discovery_timestamp = portalinfo['_history'][0]['timestamp']
+
             placemark = KML_ElementMaker.Placemark(
                 KML_ElementMaker.name(portalinfo.get('name')),
                 KML_ElementMaker.description(self.intel_href(portalinfo)),
                 KML_ElementMaker.Point(
                     KML_ElementMaker.coordinates("{:.6f},{:.6f}".format(*portalinfo['location']['coordinates']))
                 ),
-                KML_ElementMaker.TimeStamp(KML_ElementMaker.when(portalinfo['timestamp'].strftime('%Y-%m-%d'))),
+                KML_ElementMaker.TimeStamp(KML_ElementMaker.when(discovery_timestamp.strftime('%Y-%m-%d'))),
                 KML_ElementMaker.ExtendedData(KML_ElementMaker.SchemaData(*schema_data, schemaUrl="#ip"))
             )
             kml_folder.append(placemark)
