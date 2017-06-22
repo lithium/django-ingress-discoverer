@@ -175,12 +175,12 @@ class KmlOutputManager(models.Manager):
             cur_tag = cache.get(MongoPortalIndex.portal_index_etag_cache_key)
         return cur_tag
 
-    def get_current(self, rebuild_if_needed=True):
+    def get_current(self, rebuild_if_needed=True, force_rebuild=False):
         latest = self.get_latest()
 
         cur_tag = self.get_current_index_tag()
 
-        if rebuild_if_needed and (latest is None or cur_tag != latest.portal_index_etag):
+        if force_rebuild or (rebuild_if_needed and (latest is None or cur_tag != latest.portal_index_etag)):
             now = timezone.now()
             dataset_name = "OPS-{latest}".format(
                 latest=now.strftime("%m%d%y")
