@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% load humanize %}
+
+
+{% block extra_head %}
+{{ form.media }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="export-form">
+
+    <form method="POST">
+        {% csrf_token %}
+
+        {{form.as_p}}
+        <div class="clear"></div>
+
+        <button type="submit">Export</button>
+    </form>
+
+</div>
+{% endblock %}
+

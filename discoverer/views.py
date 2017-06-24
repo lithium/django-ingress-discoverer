@@ -1,22 +1,24 @@
+import datetime
 import os
 from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.sites.models import Site
 from django.http import Http404, StreamingHttpResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import last_modified, etag
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, FormView
 from pymongo.errors import BulkWriteError
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
-from discoverer.models import KmlOutput
+from discoverer.forms import ExportDatasetForm
+from discoverer.models import KmlOutput, SearchRegion
 from discoverer.portalindex.helpers import MongoPortalIndex
 from discoverer.utils import start_celery_dyno
 from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals
@@ -177,5 +179,29 @@ class SubmitPortalInfos(APIView):
             start_celery_dyno()
 
         return Response("ok")
+
+
+@method_decorator(permission_required('discoverer.has_kml_download_perm'), name='dispatch')
+@method_decorator(login_required, name='dispatch')
+class ExportDataset(FormView):
+    form_class = ExportDatasetForm
+    template_name = 'discoverer/export.html'
+
+    def form_valid(self, form):
+        formatting_kwargs = form.get_csv_formatting_kwargs()
+        return super(ExportDataset, self).form_valid(form)
+
+    def get_form_kwargs(self):
+        kwargs = super(ExportDataset, self).get_form_kwargs()
+        kwargs['initial'] = {
+            'range': SearchRegion.objects.get_active().geom,
+            'csv_delimiter': ',',
+            'csv_quotechar': '"',
+            'csv_lineterminator': "\\r\\n",
+            'csv_doublequote': True,
+            'csv_escapechar': '"',
+        }
+        return kwargs
+
 
 

@@ -1,3 +1,5 @@
+import StringIO
+import csv
 import json
 import uuid
 from hashlib import sha1
@@ -5,6 +7,7 @@ from hashlib import sha1
 import os
 import pymongo
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.functional import LazyObject
 from pykml.factory import KML_ElementMaker
@@ -218,6 +221,31 @@ class PortalIndexHelper(object):
             )
         )
         return doc
+
+    def generate_csv(self, csv_formatting_kwargs=None, *args, **kwargs):
+        if csv_formatting_kwargs is None:
+            csv_formatting_kwargs = {}
+
+        fieldnames = ('guid', 'name', 'longitude', 'latitude', 'score_region', 'discovery date')
+        buf = StringIO.StringIO()
+        csvwriter = csv.DictWriter(buf, fieldnames, extrasaction='ignore', **csv_formatting_kwargs)
+
+        def _map_doc_to_csv(doc):
+            return dict(
+                guid=doc['guid'],
+                name=doc['name'],
+                longitude=doc['location']['coordinates'][0],
+                latitude=doc['location']['coordinates'][1],
+                score_region=doc['region'],
+                discovery_date=doc['_history'][0]['timestamp'],
+            )
+
+        cursor = self.portals.find(*args, **kwargs)
+        for portalinfo in cursor:
+            csvwriter.writerow(_map_doc_to_csv(portalinfo))
+
+        return buf
+
 
 MongoPortalIndex = PortalIndexHelper()
 
