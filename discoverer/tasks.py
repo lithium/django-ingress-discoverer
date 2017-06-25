@@ -40,9 +40,13 @@ def regenerate_dataset_output(self, dataset_output_pk, force=False):
             release_lock(lock_id)
 
 
+publish_guid_index_lock_key = "publish_guid_index"
+
+
 @celery_app.task(bind=True)
 @heartbeat_idle_timeout
 def publish_guid_index(self):
+    release_lock(publish_guid_index_lock_key)
     MongoPortalIndex.publish_guid_index()
 
 

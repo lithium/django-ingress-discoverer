@@ -22,8 +22,9 @@ from rest_framework.views import APIView
 from discoverer.forms import ExportDatasetForm
 from discoverer.models import SearchRegion, DatasetOutput
 from discoverer.portalindex.helpers import MongoPortalIndex
-from discoverer.utils import start_celery_dyno, ordered_dict_hash
-from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals, regenerate_dataset_output
+from discoverer.utils import start_celery_dyno, ordered_dict_hash, acquire_lock
+from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals, regenerate_dataset_output, \
+    publish_guid_index_lock_key
 
 
 @method_decorator(login_required, name='dispatch')
@@ -152,9 +153,10 @@ class SubmitPortalInfos(APIView):
             request.user.updated_count += updated
             request.user.save()
 
-            publish_guid_index.apply_async(kwargs={})
+            if acquire_lock(publish_guid_index_lock_key):
+                publish_guid_index.apply_async()
             upserted_ids = list(map(lambda r: str(r.get('_id')), results.get('upserted', [])))
-            if 'GROUPME_BOT_ID' in os.environ and len(upserted_ids) > 0:
+            if os.environ.get('GROUPME_BOT_ID', False) and len(upserted_ids) > 0:
                 notify_channel_of_new_portals.apply_async(kwargs=dict(new_doc_ids=upserted_ids))
             start_celery_dyno()
 
