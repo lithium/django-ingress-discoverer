@@ -11,23 +11,35 @@
 
 <div class="export-list">
 
-    <table>
+   <h3>
+       <a href="{% url 'dataset_create' %}">Create New Dataset</a>
+   </h3>
+
+    <table class="table">
+        <tr>
+            <th>Dataset</th>
+            <th>Last Updated</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
 
     {% for dataset in datasets %}
         <tr>
-            <td>{{dataset.name}}</td>
+            <td>{{dataset.filename}}</td>
             <td>{{dataset.updated_at}}</td>
             <td>{{dataset.get_status}}</td>
             {%if dataset.get_status == "ready" %}
             <td><a href="{% url 'dataset_download' pk=dataset.pk %}">Download</a></td>
             {%elif dataset.get_status == "stale" %}
-            <td><a href="{% url 'dataset_regenerate' pk=dataset.pk %}">Rebuild</a></td>
+            <td>
+                <a href="{% url 'dataset_regenerate' pk=dataset.pk %}">Rebuild</a>
+                | <a href="{% url 'dataset_download' pk=dataset.pk %}">Download</a>
+            </td>
             {% endif %}
         </tr>
     {% endfor %}
     </table>
 
-    <a href="{% url 'dataset_create' %}">Create New Dataset</a>
 
 </div>
 {% endblock %}

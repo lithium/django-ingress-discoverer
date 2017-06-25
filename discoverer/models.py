@@ -84,7 +84,10 @@ class DatasetOutput(AuditedModel):
 
     @property
     def filename(self):
-        return u"{}.{}".format(self.name, self.filetype)
+        return u"{name}-{updated_at}.{ext}".format(
+            name=self.name,
+            updated_at=self.updated_at.strftime('%Y%m%d'),
+            ext=self.filetype)
 
     def get_status(self):
         if self.status == self.STATUS_READY and self.portal_index_etag != MongoPortalIndex.get_portal_index_etag():
@@ -98,11 +101,11 @@ class DatasetOutput(AuditedModel):
 
         if force or (self.status != self.STATUS_READY or not self.file or cur_tag != self.portal_index_etag):
             if self.filetype == 'kml':
-                output = MongoPortalIndex.generate_kml(name=self.name,
+                output = MongoPortalIndex.generate_kml(filename=self.filename,
                                                        *find_args, **find_kwargs)
             elif self.filetype == 'csv':
                 csv_formatting_kwargs = {k: v.encode('utf-8') for k,v in self.config_kwargs.get('options').items()}
-                output = MongoPortalIndex.generate_csv(name=self.name,
+                output = MongoPortalIndex.generate_csv(filename=self.filename,
                                                        csv_formatting_kwargs=csv_formatting_kwargs,
                                                        *find_args, **find_kwargs)
             else:

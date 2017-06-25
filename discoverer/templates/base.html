@@ -56,7 +56,7 @@
     <ul>
         {% if user.has_kml_download_perm %}
             {% if request.path != "/exports" %}
-                <li><a target="_blank" href="{% url 'dataset_list' %}">Datasets</a></li>
+                <li><a href="{% url 'dataset_list' %}">Datasets</a></li>
             {% else %}
                 <li><a href="/">Home</a></li>
             {% endif %}

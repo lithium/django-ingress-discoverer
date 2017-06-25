@@ -185,7 +185,7 @@ class PortalIndexHelper(object):
     def latlngstr(self, latE6, lngE6):
         return u"{lat:.6f},{lng:.6f}".format(lat=latE6/1e6, lng=lngE6/1e6)
 
-    def generate_kml(self, name='portals', *args, **kwargs):
+    def generate_kml(self, filename='portals.kml', *args, **kwargs):
         kml_schema = KML_ElementMaker.Schema(
             KML_ElementMaker.SimpleField(name="LAT", type="float"),
             KML_ElementMaker.SimpleField(name="LNG", type="float"),
@@ -195,7 +195,7 @@ class PortalIndexHelper(object):
             id="ip"
         )
         kml_folder = KML_ElementMaker.Folder(
-            KML_ElementMaker.name(name),
+            KML_ElementMaker.name(filename),
         )
         cursor = self.portals.find(*args, **kwargs)
         for portalinfo in cursor:
@@ -227,16 +227,17 @@ class PortalIndexHelper(object):
                 kml_folder
             )
         )
-        kmlfile = ContentFile(etree.tostring(doc), name="{}.kml".format(name))
+        kmlfile = ContentFile(etree.tostring(doc), name=filename)
         return kmlfile
 
-    def generate_csv(self, name='portals', csv_formatting_kwargs=None, *args, **kwargs):
+    def generate_csv(self, filename='portals.csv', csv_formatting_kwargs=None, *args, **kwargs):
         if csv_formatting_kwargs is None:
             csv_formatting_kwargs = {}
 
-        fieldnames = ('guid', 'name', 'longitude', 'latitude', 'score_region', 'discovery date')
+        fieldnames = ('guid', 'name', 'longitude', 'latitude', 'score_region', 'discovery_date')
         buf = StringIO.StringIO()
         csvwriter = csv.DictWriter(buf, fieldnames, extrasaction='ignore', **csv_formatting_kwargs)
+        csvwriter.writeheader()
 
         def _map_doc_to_csv(doc):
             return dict(
@@ -245,7 +246,7 @@ class PortalIndexHelper(object):
                 longitude=doc['location']['coordinates'][0],
                 latitude=doc['location']['coordinates'][1],
                 score_region=doc['region'],
-                discovery_date=doc['_history'][0]['timestamp'].isoformat(),
+                discovery_date=doc['_history'][0]['timestamp'].strftime('%Y-%m-%d'),
             )
 
         cursor = self.portals.find(*args, **kwargs)
@@ -253,7 +254,7 @@ class PortalIndexHelper(object):
             row = _map_doc_to_csv(portalinfo)
             csvwriter.writerow(row)
 
-        csvfile = ContentFile(buf.getvalue(), name="{}.csv".format(name))
+        csvfile = ContentFile(buf.getvalue(), name=filename)
         return csvfile
 
 
