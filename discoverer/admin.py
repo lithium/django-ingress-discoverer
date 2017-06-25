@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 from django.contrib.gis.admin import OSMGeoAdmin
 
-from discoverer.models import DiscovererUser, KmlOutput, SearchRegion
+from discoverer.models import DiscovererUser, SearchRegion, DatasetOutput
 
 
 class PermissionAdmin(admin.ModelAdmin):
@@ -42,9 +42,9 @@ class DiscovererUserAdmin(UserAdmin):
 admin.site.register(DiscovererUser, DiscovererUserAdmin)
 
 
-class KmlOutputAdmin(AuditedModelAdmin):
-    list_display = ('name','created_at')
-admin.site.register(KmlOutput, KmlOutputAdmin)
+class DatasetOutputAdmin(AuditedModelAdmin):
+    list_display = ('name', 'filetype', 'stored_config_kwargs', 'status', 'created_at', 'updated_at')
+admin.site.register(DatasetOutput, DatasetOutputAdmin)
 
 
 class SearchRegionAdmin(OSMGeoAdmin, AuditedModelAdmin):

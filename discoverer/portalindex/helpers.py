@@ -9,7 +9,7 @@ import pymongo
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from django.utils.functional import LazyObject
+from lxml import etree
 from pykml.factory import KML_ElementMaker
 from pymongo.errors import InvalidOperation
 
@@ -157,6 +157,13 @@ class PortalIndexHelper(object):
         etag = cache.get(self.portal_index_etag_cache_key)
         return etag
 
+    def get_portal_index_etag(self, publish_if_needed=True):
+        cur_tag = cache.get(MongoPortalIndex.portal_index_etag_cache_key)
+        if cur_tag is None and publish_if_needed:
+            MongoPortalIndex.publish()
+            cur_tag = cache.get(MongoPortalIndex.portal_index_etag_cache_key)
+        return cur_tag
+
     def guid_index(self, publish_if_needed=True):
         if self.guid_index_collection_name not in self.mongo.db.collection_names():
             self.publish_guid_index()
@@ -178,7 +185,7 @@ class PortalIndexHelper(object):
     def latlngstr(self, latE6, lngE6):
         return u"{lat:.6f},{lng:.6f}".format(lat=latE6/1e6, lng=lngE6/1e6)
 
-    def generate_kml(self, dataset_name='portals', *args, **kwargs):
+    def generate_kml(self, name='portals', *args, **kwargs):
         kml_schema = KML_ElementMaker.Schema(
             KML_ElementMaker.SimpleField(name="LAT", type="float"),
             KML_ElementMaker.SimpleField(name="LNG", type="float"),
@@ -188,7 +195,7 @@ class PortalIndexHelper(object):
             id="ip"
         )
         kml_folder = KML_ElementMaker.Folder(
-            KML_ElementMaker.name(dataset_name),
+            KML_ElementMaker.name(name),
         )
         cursor = self.portals.find(*args, **kwargs)
         for portalinfo in cursor:
@@ -220,9 +227,10 @@ class PortalIndexHelper(object):
                 kml_folder
             )
         )
-        return doc
+        kmlfile = ContentFile(etree.tostring(doc), name="{}.kml".format(name))
+        return kmlfile
 
-    def generate_csv(self, csv_formatting_kwargs=None, *args, **kwargs):
+    def generate_csv(self, name='portals', csv_formatting_kwargs=None, *args, **kwargs):
         if csv_formatting_kwargs is None:
             csv_formatting_kwargs = {}
 
@@ -237,14 +245,16 @@ class PortalIndexHelper(object):
                 longitude=doc['location']['coordinates'][0],
                 latitude=doc['location']['coordinates'][1],
                 score_region=doc['region'],
-                discovery_date=doc['_history'][0]['timestamp'],
+                discovery_date=doc['_history'][0]['timestamp'].isoformat(),
             )
 
         cursor = self.portals.find(*args, **kwargs)
         for portalinfo in cursor:
-            csvwriter.writerow(_map_doc_to_csv(portalinfo))
+            row = _map_doc_to_csv(portalinfo)
+            csvwriter.writerow(row)
 
-        return buf
+        csvfile = ContentFile(buf.getvalue(), name="{}.csv".format(name))
+        return csvfile
 
 
 MongoPortalIndex = PortalIndexHelper()

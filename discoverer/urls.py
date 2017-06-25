@@ -16,16 +16,20 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from discoverer.views import Home, ServeIndex, SubmitPortalInfos, DownloadKml, DownloadPlugin, Leaderboard, \
-    ExportDataset
+from discoverer.views import Home, ServeIndex, SubmitPortalInfos, DownloadPlugin, DatasetList, DatasetCreate, \
+    DatasetDownload, DatasetRegenerate
 
 urlpatterns = [
     url(r'^$', Home.as_view(), name='home'),
-    url(r'^fetchKml$', DownloadKml.as_view(), name='download_kml'),
-    url(r'^export$', ExportDataset.as_view(), name='export_dataset'),
-    url(r'^iitc-plugin-portal-discoverer.user.js$', DownloadPlugin.as_view(), name='download_iitc_plugin'),
 
-    url(r'^hiscore$', Leaderboard.as_view(), name='leaderboard'),
+    # url(r'^hiscore$', Leaderboard.as_view(), name='leaderboard'),
+
+    url(r'^exports$', DatasetList.as_view(), name='dataset_list'),
+    url(r'^exports/create$', DatasetCreate.as_view(), name='dataset_create'),
+    url(r'^exports/(?P<pk>[^/]+)$', DatasetDownload.as_view(), name='dataset_download'),
+    url(r'^exports/(?P<pk>[^/]+)/regenerate$', DatasetRegenerate.as_view(), name='dataset_regenerate'),
+
+    url(r'^iitc-plugin-portal-discoverer.user.js$', DownloadPlugin.as_view(), name='download_iitc_plugin'),
 
     url(r'^pidx$', ServeIndex.as_view(), name='serve_index'),
     url(r'^spi$', SubmitPortalInfos.as_view(), name='submit_portalinfos'),

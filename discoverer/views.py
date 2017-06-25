@@ -6,11 +6,13 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.sites.models import Site
-from django.http import Http404, StreamingHttpResponse, HttpResponse
+from django.http import Http404, StreamingHttpResponse, HttpResponse, HttpResponseRedirect
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import last_modified, etag
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView, FormView, CreateView, ListView, RedirectView
+from django.views.generic.detail import SingleObjectMixin
 from pymongo.errors import BulkWriteError
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
@@ -18,10 +20,10 @@ from rest_framework.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
 from discoverer.forms import ExportDatasetForm
-from discoverer.models import KmlOutput, SearchRegion
+from discoverer.models import SearchRegion, DatasetOutput
 from discoverer.portalindex.helpers import MongoPortalIndex
-from discoverer.utils import start_celery_dyno
-from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals
+from discoverer.utils import start_celery_dyno, ordered_dict_hash
+from discoverer.tasks import publish_guid_index, notify_channel_of_new_portals, regenerate_dataset_output
 
 
 @method_decorator(login_required, name='dispatch')
@@ -33,43 +35,34 @@ class Home(TemplateView):
         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalindex') and \
                                    self.request.user.has_perm('discoverer.read_iitcplugin')
         context['site'] = Site.objects.get_current(request=self.request)
-        context['latest_kml'] = KmlOutput.objects.get_current(rebuild_if_needed=False)
         context['portal_index_count'] = MongoPortalIndex.portal_index_count
-        # if self.request.user.has_perm('discoverer.read_own_portalinfo'):
-        #     own_portals = PortalInfo.objects.filter(created_by=self.request.user).order_by('-created_at')
-        #     context.update(dict(
-        #         total_you_discovered=own_portals.count(),
-        #         portals=own_portals[:10]
-        #     ))
-        # if self.request.user.has_perm('discoverer.read_portalinfo'):
-        #     context['total_discovered'] = PortalInfo.objects.all().count()
         return context
 
 
-@method_decorator(login_required, name='dispatch')
-class Leaderboard(TemplateView):
-    template_name = 'discoverer/leaderboard.html'
-
-    # def build_leaderboard(self, queryset):
-    #     created_by_counts = queryset.values('created_by').order_by().annotate(Count('created_by'))
-    #     users = []
-    #     for row in created_by_counts:
-    #         try:
-    #             user = DiscovererUser.objects.get(pk=row.get('created_by'))
-    #         except DiscovererUser.DoesNotExist:
-    #             pass
-    #         else:
-    #             users.append([user, row.get('created_by__count')])
-    #     return reversed(sorted(users, lambda a, b: cmp(a[1], b[1])))
-
-    def get_context_data(self, **kwargs):
-        context = super(Leaderboard, self).get_context_data(**kwargs)
-        context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
-        # context['leaderboard'] = self.build_leaderboard(PortalInfo.objects.all())
-        # context['recent_leaderboard'] = self.build_leaderboard(PortalInfo.objects.filter(
-        #     created_at__gte=timezone.now() - datetime.timedelta(days=1)
-        # ))
-        return context
+# @method_decorator(login_required, name='dispatch')
+# class Leaderboard(TemplateView):
+#     template_name = 'discoverer/leaderboard.html'
+#
+#     # def build_leaderboard(self, queryset):
+#     #     created_by_counts = queryset.values('created_by').order_by().annotate(Count('created_by'))
+#     #     users = []
+#     #     for row in created_by_counts:
+#     #         try:
+#     #             user = DiscovererUser.objects.get(pk=row.get('created_by'))
+#     #         except DiscovererUser.DoesNotExist:
+#     #             pass
+#     #         else:
+#     #             users.append([user, row.get('created_by__count')])
+#     #     return reversed(sorted(users, lambda a, b: cmp(a[1], b[1])))
+#
+#     def get_context_data(self, **kwargs):
+#         context = super(Leaderboard, self).get_context_data(**kwargs)
+#         context['is_authorized'] = self.request.user.has_perm('discoverer.read_portalinfo')
+#         # context['leaderboard'] = self.build_leaderboard(PortalInfo.objects.all())
+#         # context['recent_leaderboard'] = self.build_leaderboard(PortalInfo.objects.filter(
+#         #     created_at__gte=timezone.now() - datetime.timedelta(days=1)
+#         # ))
+#         return context
 
 
 def _portal_index_last_modified(*args, **kwargs):
@@ -96,31 +89,18 @@ class ServeIndex(PermissionRequiredMixin, View):
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadKml(PermissionRequiredMixin, View):
+class DatasetDownload(PermissionRequiredMixin, SingleObjectMixin, View):
+    model = DatasetOutput
     permission_required = ('discoverer.read_kmloutput',)
     raise_exception = True
 
     def get(self, *args, **kwargs):
-        # if KmlOutput.objects.is_dirty():
-        #     if not KmlOutput.objects.is_generate_kml_task_running():
-        #         task_id = KmlOutput.objects.send_generate_kml_task()
-        #         if task_id:
-        #             try:
-        #                 AsyncResult(task_id).get(timeout=10)
-        #             except TimeoutError:
-        #                 return HttpResponse("Generating kml...")
-        #             else:
-        #                 # result finished in time, return immediately
-        #                 pass
-        #     else:
-        #         return HttpResponse("Generating kml...")
-
-        kml_output = KmlOutput.objects.get_current(rebuild_if_needed=False)
-        if kml_output is None:
+        dataset = self.get_object()
+        if dataset is None or dataset.status != DatasetOutput.STATUS_READY or not dataset.file:
             raise Http404
-        response = StreamingHttpResponse(kml_output.kmlfile)
-        response['Content-Length'] = kml_output.kmlfile.size
-        response['Content-Disposition'] = 'attachment; filename="{}.kml"'.format(kml_output.name)
+        response = StreamingHttpResponse(dataset.file)
+        response['Content-Length'] = dataset.file.size
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(dataset.filename)
         return response
 
 
@@ -183,16 +163,65 @@ class SubmitPortalInfos(APIView):
 
 @method_decorator(permission_required('discoverer.has_kml_download_perm'), name='dispatch')
 @method_decorator(login_required, name='dispatch')
-class ExportDataset(FormView):
+class DatasetList(ListView):
+    model = DatasetOutput
+    template_name = 'discoverer/exports.html'
+    context_object_name = 'datasets'
+
+
+@method_decorator(login_required, name='dispatch')
+class DatasetRegenerate(PermissionRequiredMixin, SingleObjectMixin, RedirectView):
+    model = DatasetOutput
+    permission_required = ('discoverer.read_kmloutput',)
+    raise_exception = True
+
+    def get_redirect_url(self, *args, **kwargs):
+        dataset = self.get_object()
+        regenerate_dataset_output.apply_async(kwargs=dict(dataset_output_pk=dataset.pk))
+        dataset.status = dataset.STATUS_BUILDING
+        dataset.save()
+        return reverse_lazy('dataset_list')
+
+
+@method_decorator(permission_required('discoverer.has_kml_download_perm'), name='dispatch')
+@method_decorator(login_required, name='dispatch')
+class DatasetCreate(CreateView):
+    model = DatasetOutput
     form_class = ExportDatasetForm
-    template_name = 'discoverer/export.html'
+    template_name = 'discoverer/export_form.html'
+    success_url = reverse_lazy('dataset_list')
+
+    def get_context_data(self, **kwargs):
+        context = super(DatasetCreate, self).get_context_data(**kwargs)
+        context['portal_index_etag'] = MongoPortalIndex.get_portal_index_etag()
+        return context
 
     def form_valid(self, form):
-        formatting_kwargs = form.get_csv_formatting_kwargs()
-        return super(ExportDataset, self).form_valid(form)
+        config_kwargs = dict(
+            filetype=form.data.get('filetype', 'kml'),
+            discovered_after=form.data.get('discovered_after', None),
+            range=form.data.get('range')
+        )
+        if config_kwargs['filetype'] == 'csv':
+            config_kwargs['options'] = form.get_csv_formatting_kwargs()
+        config_hash = ordered_dict_hash(config_kwargs)
+
+        self.object, created = DatasetOutput.objects.get_or_create(
+            filetype=config_kwargs['filetype'],
+            portal_index_etag=MongoPortalIndex.get_portal_index_etag(),
+            config_hash=config_hash,
+            defaults=dict(
+                name=form.data.get('name'),
+                config_kwargs=config_kwargs
+            )
+        )
+        if created or self.object.status != DatasetOutput.STATUS_READY:
+            regenerate_dataset_output.apply_async(kwargs=dict(dataset_output_pk=self.object.pk))
+            start_celery_dyno()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
-        kwargs = super(ExportDataset, self).get_form_kwargs()
+        kwargs = super(DatasetCreate, self).get_form_kwargs()
         kwargs['initial'] = {
             'range': SearchRegion.objects.get_active().geom,
             'csv_delimiter': ',',

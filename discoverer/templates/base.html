@@ -54,25 +54,11 @@
     {% endblock %}
 <nav>
     <ul>
-{% comment %}
         {% if user.has_kml_download_perm %}
-        <li><a target="_blank" href="{% url 'download_kml' %}">Download .kml</a></li>
-        {% endif %}
-
-        {% if request.path == "/hiscore" %}
-            {% if user.has_leaderboard_perm %}
-            <li><a href="/">Stats</a></li>
-            {% endif %}
-        {% else %}
-            {% if user.has_leaderboard_perm %}
-            <li><a href="{% url 'leaderboard' %}">Hi-Score</a></li>
-            {% endif %}
-        {% endif %}
-{% endcomment %}
-
-        {% if user.has_kml_download_perm %}
-            {% if request.path != "/export" %}
-                <li><a target="_blank" href="{% url 'export_dataset' %}">Export</a></li>
+            {% if request.path != "/exports" %}
+                <li><a target="_blank" href="{% url 'dataset_list' %}">Datasets</a></li>
+            {% else %}
+                <li><a href="/">Home</a></li>
             {% endif %}
         {% endif %}
 

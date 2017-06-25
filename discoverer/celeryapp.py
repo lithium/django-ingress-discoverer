@@ -1,15 +1,15 @@
 from __future__ import absolute_import, unicode_literals
 
-import uuid
+import datetime
 from functools import wraps
 
-import datetime
 import os
 from celery import Celery
-
 # set the default Django settings module for the 'celery' program.
 from django.core.cache import cache
 from django.utils import timezone
+
+from discoverer.utils import acquire_lock
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'discoverer.settings')
 
@@ -33,15 +33,15 @@ def close_worker_if_no_tasks_scheduled(worker_hostname):
     print("active:{} scheduled:{} reserved:{}".format(len(active), len(scheduled), len(reserved)))
     if len(scheduled)+len(reserved) < 1:
         from discoverer.utils import kill_celery_dyno
+        app.control.broadcast('shutdown', destination=(worker_hostname,))
         kill_celery_dyno()
-        # app.control.broadcast('shutdown', destination=(worker_hostname,))
         return True
     return False
 
 
 LAST_TASK_KEY = 'celeryapp:discoverer:last_task_timestamp'
-HEARTBEAT_KEY = 'celeryapp:discoverer:heartbeat_lock'
-HEARTBEAT_PERIOD_MINUTES = 10
+HEARTBEAT_LOCK_KEY = 'heartbeat_lock'
+HEARTBEAT_PERIOD_MINUTES = 5
 
 
 def heartbeat_idle_timeout(f):
@@ -51,8 +51,7 @@ def heartbeat_idle_timeout(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         cache.set(LAST_TASK_KEY, timezone.now())
-        if not is_heartbeat_lock():
-            acquire_heartbeat_lock()
+        if acquire_lock(HEARTBEAT_LOCK_KEY):
             heartbeat_idle_check.apply_async(eta=timezone.now() + datetime.timedelta(minutes=HEARTBEAT_PERIOD_MINUTES))
         return ret
     return wrapper
@@ -65,16 +64,3 @@ def get_last_task_time():
     return last
 
 
-def is_heartbeat_lock():
-    return True if cache.get(HEARTBEAT_KEY) is None else False
-
-
-def acquire_heartbeat_lock():
-    if not is_heartbeat_lock():
-        lock = uuid.uuid4()
-        cache.set(HEARTBEAT_KEY, lock)
-        return lock
-
-
-def release_heartbeat_lock():
-    cache.delete(HEARTBEAT_KEY)
