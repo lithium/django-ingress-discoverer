@@ -1,8 +1,15 @@
 from __future__ import absolute_import, unicode_literals
+
+import uuid
+from functools import wraps
+
+import datetime
 import os
 from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
+from django.core.cache import cache
+from django.utils import timezone
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'discoverer.settings')
 
@@ -30,3 +37,44 @@ def close_worker_if_no_tasks_scheduled(worker_hostname):
         # app.control.broadcast('shutdown', destination=(worker_hostname,))
         return True
     return False
+
+
+LAST_TASK_KEY = 'celeryapp:discoverer:last_task_timestamp'
+HEARTBEAT_KEY = 'celeryapp:discoverer:heartbeat_lock'
+HEARTBEAT_PERIOD_MINUTES = 10
+
+
+def heartbeat_idle_timeout(f):
+    from discoverer.tasks import heartbeat_idle_check
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        ret = f(*args, **kwargs)
+        cache.set(LAST_TASK_KEY, timezone.now())
+        if not is_heartbeat_lock():
+            acquire_heartbeat_lock()
+            heartbeat_idle_check.apply_async(eta=timezone.now() + datetime.timedelta(minutes=HEARTBEAT_PERIOD_MINUTES))
+        return ret
+    return wrapper
+
+
+def get_last_task_time():
+    last = cache.get(LAST_TASK_KEY)
+    if last is None:
+        return timezone.now()
+    return last
+
+
+def is_heartbeat_lock():
+    return True if cache.get(HEARTBEAT_KEY) is None else False
+
+
+def acquire_heartbeat_lock():
+    if not is_heartbeat_lock():
+        lock = uuid.uuid4()
+        cache.set(HEARTBEAT_KEY, lock)
+        return lock
+
+
+def release_heartbeat_lock():
+    cache.delete(HEARTBEAT_KEY)

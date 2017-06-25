@@ -3,6 +3,7 @@ import os
 from django.core.cache import cache
 
 from geopy.geocoders import Nominatim
+from requests import HTTPError
 
 _geolocator = Nominatim()
 
@@ -52,8 +53,12 @@ def start_celery_dyno(*args, **kwargs):
     dyno = active_celery_dyno(*args, **kwargs)
     if dyno is None:
         app = heroku_app(*args, **kwargs)
-        dyno = app.run_command_detached('celery worker --app=discoverer.celery_app -l info --concurrency 1')
-        cache.set(_heroku_dyno_cache_key, dyno.id)
+        try:
+            dyno = app.run_command_detached('celery worker --app=discoverer.celery_app -l info --concurrency 1')
+        except HTTPError as e:
+            pass
+        else:
+            cache.set(_heroku_dyno_cache_key, dyno.id)
 
 
 def kill_celery_dyno(*args, **kwargs):
